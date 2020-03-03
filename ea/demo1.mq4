@@ -43,6 +43,7 @@ const int DOWN_2 = 6;
 const int closeBuy = 1;
 const int closeSell = 2;
 const int kpool = 80;
+const double Lots = 0.01;
 
 void OnTick()
 {
@@ -112,11 +113,11 @@ void OnTick()
     for(pi=0; pi<kpool; pi++){   //往前最多找kpool次
       if(point3Price>0) break;
       position = pi+3;  //0：当前未走，1：叉后，2：叉前
-      pma1K1 = iMA(Symbol(),0,ma1,0,MODE_SMA,PRICE_CLOSE,i+position);
-      pma4K1 = iMA(Symbol(),0,ma4,0,MODE_SMA,PRICE_CLOSE,i+position);
+      pma1K1 = iMA(Symbol(),0,ma1,0,MODE_SMA,PRICE_CLOSE,1+position);
+      pma4K1 = iMA(Symbol(),0,ma4,0,MODE_SMA,PRICE_CLOSE,1+position);
 
-      pma1K2 = iMA(Symbol(),0,ma1,0,MODE_SMA,PRICE_CLOSE,i+position+1);
-      pma4K2 = iMA(Symbol(),0,ma4,0,MODE_SMA,PRICE_CLOSE,i+position+1);
+      pma1K2 = iMA(Symbol(),0,ma1,0,MODE_SMA,PRICE_CLOSE,1+position+1);
+      pma4K2 = iMA(Symbol(),0,ma4,0,MODE_SMA,PRICE_CLOSE,1+position+1);
 
       if(
          (pma1K1-pma4K1>0) != (pma1K2-pma4K2>0)
@@ -140,7 +141,7 @@ void OnTick()
       }
     }
 
-    if(type < UP_2){  //1叉4情况
+    if(openType < UP_2){  //1叉4情况
 
     }else{   //1叉2情况
       if(part2DiffNum == 0 || part1TotalDiff/part1DiffNum < part2TotalDiff/part2DiffNum*1.5){  //前一浪平均值大于前前浪平均值2倍
