@@ -57,15 +57,15 @@ void OnTick()
     }else{
         closeType = strategyClose1(0,
                 pre1Ma1,pre2Ma1,pre1Ma2,pre2Ma2,pre1Ma3,pre2Ma3);
-                
-        if(closeType > 0){
-            if(closeType == CLOSE_BUY_OPEN){
-                openType = OPEN_SELL_AFTER_CLOSE;
-            }
-            if(closeType == CLOSE_SELL_OPEN){
-                openType = OPEN_BUY_AFTER_CLOSE;
-            }
-        }
+
+        // if(closeType > 0){
+        //     if(closeType == CLOSE_BUY_OPEN){
+        //         openType = OPEN_SELL_AFTER_CLOSE;
+        //     }
+        //     if(closeType == CLOSE_SELL_OPEN){
+        //         openType = OPEN_BUY_AFTER_CLOSE;
+        //     }
+        // }
         
         for(int cnt=0;cnt<ordersTotal;cnt++)
         {
@@ -78,6 +78,7 @@ void OnTick()
                         if(!OrderClose(OrderTicket(),OrderLots(),Bid,3,Violet)){
                             Print("OrderClose buy error ",GetLastError());
                         }
+                        if(closeType == CLOSE_BUY_OPEN) openType = OPEN_SELL_AFTER_CLOSE;
                         continue;
                     }
                 }else{  //close sell
@@ -85,6 +86,7 @@ void OnTick()
                         if(!OrderClose(OrderTicket(),OrderLots(),Ask,3,Violet)){
                             Print("OrderClose sell error ",GetLastError());
                         }
+                        if(closeType == CLOSE_SELL_OPEN) openType = OPEN_BUY_AFTER_CLOSE;
                         continue;
                     }
                 }
