@@ -18,7 +18,6 @@ input int      ma4=28;
 //+------------------------------------------------------------------+
 int OnInit()
 {
-
   return(INIT_SUCCEEDED);
 }
 //+------------------------------------------------------------------+
@@ -51,7 +50,6 @@ void OnTick()
   int ordersTotal = OrdersTotal();
 
   if(Period() != 60) return;
-  int pi;
   double pre1Ma1 = iMA(Symbol(),0,ma1,0,MODE_SMA,PRICE_CLOSE,1);
   double pre2Ma1 = iMA(Symbol(),0,ma1,0,MODE_SMA,PRICE_CLOSE,2);
   double pre1Ma2 = iMA(Symbol(),0,ma2,0,MODE_SMA,PRICE_CLOSE,1);
@@ -110,7 +108,7 @@ void OnTick()
 
     double pma1K1, pma4K1, pma1K2, pma4K2, tempDiff;
     int position;
-    for(pi=0; pi<kpool; pi++){   //往前最多找kpool次
+    for(int pi=0; pi<kpool; pi++){   //往前最多找kpool次
       if(point3Price>0) break;
       position = pi+3;  //0：当前未走，1：叉后，2：叉前
       pma1K1 = iMA(Symbol(),0,ma1,0,MODE_SMA,PRICE_CLOSE,1+position);
@@ -148,27 +146,55 @@ void OnTick()
           return;
       }
     }
+
   }else{  //判断平仓和是否反方向开单
-    //判断当前方向
     if(
-      pre1Ma1 > pre1Ma4
-      // || 其他条件
-    ){  //多，平空
-      closeType = closeSell;
-    }else{  //空, 平多
-      closeType = closeBuy;
+      (pre1Ma1-pre1Ma4>0) != (pre2Ma1-pre2Ma4>0)
+    ){
+      //判断当前方向
+      if(
+        pre1Ma1 > pre1Ma4
+        // || 其他条件
+      ){  //多，平空
+        closeType = closeSell;
+      }else{  //空, 平多
+        closeType = closeBuy;
+      }
+    }
+  }
+
+  if(closeType > 0){
+    for(int cnt=0;cnt<ordersTotal;cnt++){
+      if(!OrderSelect(cnt,SELECT_BY_POS,MODE_TRADES))
+         continue;
+
+      if(closeType == closeBuy){  //平多
+        if(OrderType()==OP_BUY){
+          if(!OrderClose(OrderTicket(),OrderLots(),Bid,3,Violet)){
+            Print("OrderClose buy error ",GetLastError());
+          }
+          openType = DOWN_4_SAME;
+        }
+      }else{
+        if(OrderType()==OP_SELL){
+          if(!OrderClose(OrderTicket(),OrderLots(),Ask,3,Violet)){
+            Print("OrderClose sell error ",GetLastError());
+          }
+          openType = UP_4_SAME;
+        }
+      }
     }
   }
 
   int ticket;
   if(
-    openType > 0 && 
-    openType != UP_4_DIFF &&  //不同向考虑不开单
-    openType != DOWN_4_DIFF
+    openType > 0  
+    //&& openType != UP_4_DIFF   //不同向考虑不开单
+    //&& openType != DOWN_4_DIFF
   ){
     if(
       openType==UP_4_SAME ||
-      //openType==UP_4_DIFF ||  
+      openType==UP_4_DIFF ||  
       openType==UP_2
     ){  //openBuy
       ticket=OrderSend(Symbol(),OP_BUY,Lots,Ask,3,0,0,"open buy:"+TimeCurrent(),MAGICMA,0,Red);
@@ -187,25 +213,6 @@ void OnTick()
           Print("SELL order opened : ",OrderOpenPrice());
       }else{
         Print("Error opening SELL order : ",GetLastError());
-      }
-    }
-  }
-
-  if(closeType > 0){
-    for(int cnt=0;cnt<ordersTotal;cnt++){
-      if(!OrderSelect(cnt,SELECT_BY_POS,MODE_TRADES))
-         continue;
-
-      if(closeType == closeBuy){  //平多
-        if(OrderType()==OP_BUY){
-          if(!OrderClose(OrderTicket(),OrderLots(),Bid,3,Violet))
-            Print("OrderClose buy error ",GetLastError());
-        }
-      }else{
-        if(OrderType()==OP_SELL){
-          if(!OrderClose(OrderTicket(),OrderLots(),Ask,3,Violet))
-            Print("OrderClose sell error ",GetLastError());
-        }
       }
     }
   }
