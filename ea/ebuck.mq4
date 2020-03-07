@@ -29,8 +29,12 @@ input int      ma3=28;
 
 #define CLOSE_BUY 1
 #define CLOSE_BUY_OPEN 2
+#define CLOSE_BUY_STOP_PROFIT 3
+#define CLOSE_BUY_STOP_LOSS 4
 #define CLOSE_SELL 11
 #define CLOSE_SELL_OPEN 12
+#define CLOSE_SELL_STOP_PROFIT 13
+#define CLOSE_SELL_STOP_LOSS 14
 //============= strategy init end ==========
 
 #define MAGICMA  20200305
@@ -51,26 +55,22 @@ void OnTick()
     int ordersTotal = OrdersTotal();
     int ticket;
     if(ordersTotal == 0){ //判断开单
-        openType = strategyOpen1(0,
+        //*********!!!!!!!!!!!!!************
+        openType = strategyOpen(0,
             pre1Ma1,pre2Ma1,pre1Ma2,pre2Ma2,pre1Ma3,pre2Ma3);
 
     }else{
-        closeType = strategyClose1(0,
+        //*********!!!!!!!!!!!!!************
+        closeType = strategyClose(0,
                 pre1Ma1,pre2Ma1,pre1Ma2,pre2Ma2,pre1Ma3,pre2Ma3);
-
-        // if(closeType > 0){
-        //     if(closeType == CLOSE_BUY_OPEN){
-        //         openType = OPEN_SELL_AFTER_CLOSE;
-        //     }
-        //     if(closeType == CLOSE_SELL_OPEN){
-        //         openType = OPEN_BUY_AFTER_CLOSE;
-        //     }
-        // }
-        
+ 
         for(int cnt=0;cnt<ordersTotal;cnt++)
         {
-            if(!OrderSelect(cnt,SELECT_BY_POS,MODE_TRADES))
-            continue;
+            if(
+                !OrderSelect(cnt,SELECT_BY_POS,MODE_TRADES) ||
+                OrderMagicNumber() != MAGICMA
+            )
+                continue;
 
             if(closeType > 0){
                 if(closeType<10){   //close buy
@@ -92,8 +92,28 @@ void OnTick()
                 }
             }
 
-            //止损止盈
-            //...........
+            //*********!!!!!!!!!!!!!************
+            //止盈止损
+            closeType = orderStop();
+            if(closeType > 0){
+                if(closeType<10){   //close buy
+                    if(OrderType()==OP_BUY){
+                        if(!OrderClose(OrderTicket(),OrderLots(),Bid,3,Violet)){
+                            Print("OrderClose buy error ",GetLastError());
+                        }
+                        if(closeType == CLOSE_BUY_OPEN) openType = OPEN_SELL_AFTER_CLOSE;
+                        continue;
+                    }
+                }else{  //close sell
+                    if(OrderType()==OP_SELL){
+                        if(!OrderClose(OrderTicket(),OrderLots(),Ask,3,Violet)){
+                            Print("OrderClose sell error ",GetLastError());
+                        }
+                        if(closeType == CLOSE_SELL_OPEN) openType = OPEN_BUY_AFTER_CLOSE;
+                        continue;
+                    }
+                }
+            }
         }
     }
 
@@ -121,9 +141,9 @@ void OnTick()
 }
 
 
-// --------------------------------- public --------------------------------------
+// --------------------------------- public strategy1 --------------------------------------
 
-int strategyOpen1(int i, 
+int strategyOpen(int i, 
     double pre1Ma1,double pre2Ma1,double pre1Ma2,double pre2Ma2,double pre1Ma3,double pre2Ma3
 ){
     int type = 0;
@@ -140,16 +160,35 @@ int strategyOpen1(int i,
     if(
         (pre1Ma1-pre1Ma3>0) != (pre2Ma1-pre2Ma3>0)
     ){
-        if(pre1Ma1>pre1Ma3){
-            type = UP_13_UU;
-        }else{
-            type = DOWN_13_DD;
+        if(pre1Ma1>pre1Ma3){    //上叉
+            if(pre1Ma1>pre2Ma1){
+                if(pre1Ma3>pre2Ma3){
+                    type = UP_13_UU;    //一致  1284, 662, 51.56%
+                }else{
+                    type = UP_13_UD;     //1310, 667, 50.92%
+                }
+            }else{
+                type = UP_13_DD; //74, 37, 50%
+            }
+            
+        }else{  //下叉
+            if(pre1Ma1>pre2Ma1){
+                type = DOWN_13_UU;   //49单，29盈单，比例：59.18%
+            }else{
+                if(pre1Ma3>pre2Ma3){
+                    type = DOWN_13_DU;   //1399,632,45.18%
+                    //return type = UP_13_UU; //比例低，是不是翻过来就ok了呢？    1377，678，49.24
+                }else{
+                    type = DOWN_13_DD;  //一致   1260,572,45.4%
+                }
+            }
         }
     }
 
     //用历史过滤
 
     return type;
+    //return 0;
 }
 
 int strategyClose1(int i, 
@@ -169,4 +208,40 @@ int strategyClose1(int i,
     }
 
     return type;
+}
+
+int orderStop1(){
+    return 0;
+}
+
+//==================================================================
+
+// --------------------------------- public strategy2 --------------------------------------
+// find buy point
+//int strategyOpen1();
+
+int strategyClose(int i, 
+    double pre1Ma1,double pre2Ma1,double pre1Ma2,double pre2Ma2,double pre1Ma3,double pre2Ma3){
+    return 0;
+}
+
+int orderStop(){
+    if(OrderType() == OP_BUY){
+        if(OrderOpenPrice()+5<Ask){    //止盈
+            return CLOSE_BUY_STOP_PROFIT;
+        }
+        if(OrderOpenPrice()-5>Bid){    //止损
+            return CLOSE_BUY_STOP_LOSS;
+        }
+    }
+    if(OrderType() == OP_SELL){
+        if(OrderOpenPrice()-5>Bid){    //止盈
+            return CLOSE_SELL_STOP_PROFIT;
+        }
+        if(OrderOpenPrice()+5<Ask){    //止损
+            return CLOSE_SELL_STOP_LOSS;
+        }
+    }
+
+    return 0;
 }

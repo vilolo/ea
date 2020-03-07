@@ -45,8 +45,12 @@
 
 #define CLOSE_BUY 1
 #define CLOSE_BUY_OPEN 2
+#define CLOSE_BUY_STOP_PROFIT 3
+#define CLOSE_BUY_STOP_LOSS 4
 #define CLOSE_SELL 11
 #define CLOSE_SELL_OPEN 12
+#define CLOSE_SELL_STOP_PROFIT 13
+#define CLOSE_SELL_STOP_LOSS 14
 //============= strategy init end ==========
 
 //--- input parameters
