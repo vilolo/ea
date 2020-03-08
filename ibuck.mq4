@@ -20,9 +20,9 @@
 //--- plot ma3
 #property indicator_label3  "ma3"
 #property indicator_type3   DRAW_LINE
-#property indicator_color3  clrAqua
+#property indicator_color3  clrBlueViolet
 #property indicator_style3  STYLE_SOLID
-#property indicator_width3  1
+#property indicator_width3  2
 
 //============ strategy init ================
 #define UP_13_UU 1  //up 1叉3，两个up
@@ -57,6 +57,7 @@
 input int      ma1=5;
 input int      ma2=10;
 input int      ma3=28;
+input double   slopeStd=1; //斜率
 
 //--- indicator buffers
 double         ma1Buffer[];
@@ -166,14 +167,14 @@ int OnCalculate(const int rates_total,
         double pre1Ma3 = iMA(Symbol(),0,ma3,0,MODE_SMA,PRICE_CLOSE,i+1);
         double pre2Ma3 = iMA(Symbol(),0,ma3,0,MODE_SMA,PRICE_CLOSE,i+2);
 
-        int openType = strategyOpen1(i,
+        int openType = strategyOpen(i,
                 pre1Ma1,pre2Ma1,pre1Ma2,pre2Ma2,pre1Ma3,pre2Ma3);
 
         if(openType > 0){
-            drawOpen(openType, time[i], open[i]);
+            //drawOpen(openType, time[i], open[i]);
         }
 
-        int closeType = strategyClose1(i,
+        int closeType = strategyClose(i,
                 pre1Ma1,pre2Ma1,pre1Ma2,pre2Ma2,pre1Ma3,pre2Ma3);
 
         if(closeType > 0){
@@ -265,11 +266,11 @@ void drawOpen(int type, datetime t, double openPrice){
     ObjectSetInteger(chart_ID,objName,OBJPROP_COLOR,clr); 
 
     //StringAdd(objName, "text");
-    objName += "text";
-    ObjectCreate(chart_ID, objName, OBJ_TEXT, 0, t, openPrice+5);
-    ObjectSetInteger(chart_ID,objName,OBJPROP_TIMEFRAMES,OBJ_PERIOD_H1);
-    ObjectSetInteger(chart_ID,objName,OBJPROP_COLOR,clr); 
-    ObjectSetString(chart_ID,objName,OBJPROP_TEXT,text);
+    //objName += "text";
+    //ObjectCreate(chart_ID, objName, OBJ_TEXT, 0, t, openPrice+5);
+    //ObjectSetInteger(chart_ID,objName,OBJPROP_TIMEFRAMES,OBJ_PERIOD_H1);
+    //ObjectSetInteger(chart_ID,objName,OBJPROP_COLOR,clr); 
+    //ObjectSetString(chart_ID,objName,OBJPROP_TEXT,text);
 }
 
 void drawClose(int type, datetime t, double openPrice){
@@ -278,12 +279,12 @@ void drawClose(int type, datetime t, double openPrice){
 
     switch(type){
         case CLOSE_BUY:
-            objName = "-o-";
+            objName = "-000-";
             clr = clrRed;
             break;
         case CLOSE_SELL:
-            objName = "-s-";
-            clr = clrLime;
+            objName = "-xxx-";
+            clr = clrRed;
             break;
     }
 
@@ -291,11 +292,12 @@ void drawClose(int type, datetime t, double openPrice){
     ObjectSetInteger(chart_ID,objName,OBJPROP_TIMEFRAMES,OBJ_PERIOD_H1);
     ObjectSetInteger(chart_ID,objName,OBJPROP_COLOR,clr); 
     ObjectSetString(chart_ID,objName,OBJPROP_TEXT,objName);
+    ObjectSetInteger(chart_ID,objName,OBJPROP_FONTSIZE,14);
 }
 
 // --------------------------------- public --------------------------------------
 
-int strategyOpen1(int i, 
+int strategyOpen(int i, 
     double pre1Ma1,double pre2Ma1,double pre1Ma2,double pre2Ma2,double pre1Ma3,double pre2Ma3
 ){
     int type = 0;
@@ -308,37 +310,81 @@ int strategyOpen1(int i,
     // double pre1Ma3 = iMA(Symbol(),0,ma3,0,MODE_SMA,PRICE_CLOSE,i+pi);
     // double pre2Ma3 = iMA(Symbol(),0,ma3,0,MODE_SMA,PRICE_CLOSE,i+pi+1);
 
-    //当前
+    //当前1叉3
     if(
         (pre1Ma1-pre1Ma3>0) != (pre2Ma1-pre2Ma3>0)
     ){
-        if(pre1Ma1>pre1Ma3){
-            type = UP_13_UU;
-        }else{
-            type = DOWN_13_DD;
+        if(pre1Ma1>pre1Ma3){    //上叉
+            if(pre1Ma1>pre2Ma1){
+                if(pre1Ma3>pre2Ma3){
+                    type = UP_13_UU;    //一致  1284, 662, 51.56%
+                }else{
+                    type = UP_13_UD;     //1310, 667, 50.92%
+                }
+            }else{
+                type = UP_13_DD; //74, 37, 50%
+            }
+            
+        }else{  //下叉
+            if(pre1Ma1>pre2Ma1){
+                type = DOWN_13_UU;   //49单，29盈单，比例：59.18%
+            }else{
+                if(pre1Ma3>pre2Ma3){
+                    type = DOWN_13_DU;   //1399,632,45.18%
+                    //return type = UP_13_UU; //比例低，是不是翻过来就ok了呢？    1377，678，49.24
+                }else{
+                    type = DOWN_13_DD;  //一致   1260,572,45.4%
+                }
+            }
         }
+    }else{  //1叉2
+      if(
+         (pre1Ma1-pre1Ma2>0) != (pre2Ma1-pre2Ma2>0)
+      ){
+         
+      }
     }
+    
+    //判断斜率
+    double slope3 = (pre1Ma3-iMA(Symbol(),0,ma3,0,MODE_SMA,PRICE_CLOSE,i+3))/0.1;
+    double slope1 = (pre1Ma2-iMA(Symbol(),0,ma2,0,MODE_SMA,PRICE_CLOSE,i+3))/0.1;
+    
+    //假设3水平
+    if(fabs(slope3)<0.5){  //？？是否区分1叉2或叉3？
+      if(fabs(slope1-slope3)>10){   //小山丘，1叉2
+         //一致
+      }else{   //窄幅震荡，以3为准
+         if(type == UP_13_UD || type == DOWN_13_DU){   //1和3不一致的排除
+            //return 0;
+         }
+      }
+    }else{  //单边
+      if(fabs(slope1-slope3)>5){//开口太大，危险
+         //return 0;
+      }
+    }
+    
+    
+    
+    //up 1up-3up
+    //up up-down
+    //up down-down
+   
+    //down 1up-3up
+    //down down-up
+    //down down-down
+   
+    //flat 1up-3flat
+    //flat 1down-3flat
 
     //用历史过滤
+    
 
     return type;
+    //return 0;
 }
 
-int strategyClose1(int i, 
-    double pre1Ma1,double pre2Ma1,double pre1Ma2,double pre2Ma2,double pre1Ma3,double pre2Ma3
-){
-    int type = 0;
-
-    if(
-        fabs(pre1Ma1-pre1Ma3)>5 &&
-        fabs(pre1Ma3-iMA(Symbol(),0,ma3,0,MODE_SMA,PRICE_CLOSE,i+6))<3
-    ){
-        if(pre1Ma1>pre1Ma3){
-            type = CLOSE_BUY;
-        }else{
-            type = CLOSE_SELL;
-        }
-    }
-
-    return type;
+int strategyClose(int i, 
+    double pre1Ma1,double pre2Ma1,double pre1Ma2,double pre2Ma2,double pre1Ma3,double pre2Ma3){
+    return 0;
 }
