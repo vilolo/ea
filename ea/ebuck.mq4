@@ -4,11 +4,13 @@
 #property strict
 
 //--- input parameters
-input int      ma1=5;
+input int      ma1=5;   //15
 input int      ma2=10;
-input int      ma3=28;
+input int      ma3=28;  //26
 
 //============ strategy init ================
+input double      slopeStd=4.5;     //3.8
+
 #define UP_13_UU 1  //up 1叉3，两个up
 #define UP_13_UD 2  //up 1叉3，1up,3down
 #define UP_13_DD 3  //up 1叉3，1down,3down
@@ -143,7 +145,7 @@ void OnTick()
 
 // --------------------------------- public strategy1 --------------------------------------
 
-int strategyOpen(int i, 
+int strategyOpen1(int i, 
     double pre1Ma1,double pre2Ma1,double pre1Ma2,double pre2Ma2,double pre1Ma3,double pre2Ma3
 ){
     int type = 0;
@@ -227,7 +229,7 @@ int strategyClose(int i,
 
 int orderStop(){
     if(OrderType() == OP_BUY){
-        if(OrderOpenPrice()+5<Ask){    //止盈
+        if(OrderOpenPrice()+10<Ask){    //止盈
             return CLOSE_BUY_STOP_PROFIT;
         }
         if(OrderOpenPrice()-5>Bid){    //止损
@@ -235,7 +237,7 @@ int orderStop(){
         }
     }
     if(OrderType() == OP_SELL){
-        if(OrderOpenPrice()-5>Bid){    //止盈
+        if(OrderOpenPrice()-10>Bid){    //止盈
             return CLOSE_SELL_STOP_PROFIT;
         }
         if(OrderOpenPrice()+5<Ask){    //止损
@@ -244,4 +246,50 @@ int orderStop(){
     }
 
     return 0;
+}
+
+//===== 3 ======
+int strategyOpen(int i, 
+    double pre1Ma1,double pre2Ma1,double pre1Ma2,double pre2Ma2,double pre1Ma3,double pre2Ma3
+){
+    //既然没有放之四海而皆准的，那就一个个点找吧
+
+    //三点，两两间斜率
+    double pre3Ma1 = iMA(Symbol(),0,ma1,0,MODE_SMA,PRICE_CLOSE,i+3);
+    double pre3Ma2 = iMA(Symbol(),0,ma2,0,MODE_SMA,PRICE_CLOSE,i+3);
+    double pre3Ma3 = iMA(Symbol(),0,ma3,0,MODE_SMA,PRICE_CLOSE,i+3);
+
+    double p1Ma13 = pre1Ma1-pre1Ma3;
+    double p2Ma13 = pre2Ma1-pre2Ma3;
+    double p3Ma13 = pre3Ma1-pre3Ma3;
+
+    int type = 0;
+    if(
+        fabs((p1Ma13-p2Ma13)-(p2Ma13-p3Ma13)) > slopeStd
+    ){  //斜率差异大，注意开口放大还是缩小
+        if((p1Ma13-p2Ma13)-(p2Ma13-p3Ma13) > 0){    //放大
+            if(pre1Ma1>pre1Ma3){    //up
+                if(pre1Ma3>pre2Ma3){    //同向
+                    type = UP_13_UU; //4.5
+                }else{
+                    type = UP_13_UD;    //大于3为0
+                }
+            }else{
+                if(pre1Ma3<pre2Ma3){    //同向
+                    type = DOWN_13_DD;   //全部是负的，5.4负最小
+                }else{
+                    type = DOWN_13_DU;
+                }
+            }
+        }else{  //缩小
+            if(pre1Ma1>pre2Ma1){    //up
+                type = UP_13_UU; //3.8
+            }else{
+                type = DOWN_13_DD;   //5.4
+            }
+        }
+    }
+
+    return type;
+    //return 0;
 }

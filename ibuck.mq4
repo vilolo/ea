@@ -71,6 +71,7 @@ string objNameReferenceDown = "referenceLineDown";
 
 int OnInit()
 {
+    printf(TimeCurrent()-(TimeCurrent()%3600));
     SetIndexBuffer(0,ma1Buffer);
     SetIndexBuffer(1,ma2Buffer);
     SetIndexBuffer(2,ma3Buffer);
