@@ -98,13 +98,15 @@ void OnTick()
 }
 
 //=================== strategy 1 ================
-int closeStrategy(){
+int closeStrategy1(){
     return 0;
 }
 
 input int profitPoint = 20; 
 input int lossPoint = 8;
 int StopStrategy(){
+   return 0;
+
     if(OrderType() == OP_BUY){
         if(OrderOpenPrice()+profitPoint<Ask){    //止盈
             return CLOSE_BUY;
@@ -135,7 +137,7 @@ input int      isMultiple=1;  //非1=单订单，1=多订单
 input double    offsetStd=0.005;   //互相抵消的临界值    0.005 or 0.018
 input double    slopeStd=2;
 
-int openStrategy(){
+int openStrategy1(){
     int pi = 1;
     double pre1Ma1 = iMA(Symbol(),0,ma1,0,MODE_SMA,PRICE_CLOSE,pi);
     double pre2Ma1 = iMA(Symbol(),0,ma1,0,MODE_SMA,PRICE_CLOSE,pi+1);
@@ -220,4 +222,43 @@ int openStrategy(){
     }
 
     return type;
+}
+
+int openStrategy(){
+    int pi = 1;
+    double pre1Ma1 = iMA(Symbol(),0,ma1,0,MODE_SMA,PRICE_CLOSE,pi);
+    double pre2Ma1 = iMA(Symbol(),0,ma1,0,MODE_SMA,PRICE_CLOSE,pi+1);
+    double pre3Ma1 = iMA(Symbol(),0,ma1,0,MODE_SMA,PRICE_CLOSE,pi+2);
+    double pre1Ma2 = iMA(Symbol(),0,ma2,0,MODE_SMA,PRICE_CLOSE,pi);
+    double pre2Ma2 = iMA(Symbol(),0,ma2,0,MODE_SMA,PRICE_CLOSE,pi+1);
+    double pre3Ma2 = iMA(Symbol(),0,ma2,0,MODE_SMA,PRICE_CLOSE,pi+2);
+    double pre1Ma3 = iMA(Symbol(),0,ma3,0,MODE_SMA,PRICE_CLOSE,pi);
+    double pre2Ma3 = iMA(Symbol(),0,ma3,0,MODE_SMA,PRICE_CLOSE,pi+1);
+    double pre3Ma3 = iMA(Symbol(),0,ma3,0,MODE_SMA,PRICE_CLOSE,pi+2);
+    
+    int type = 0;
+    
+    if(
+        (pre1Ma2-pre1Ma3>0) != (pre2Ma2-pre2Ma3>0)  //2叉3
+    ){
+      if(pre1Ma2 > pre1Ma3){
+         type = OPEN_BUY;
+      }else{
+         type = OPEN_SELL;
+      }
+    }
+    
+    return type;
+}
+
+int closeStrategy(){
+    int type = openStrategy();
+    if(type != 0){
+       if(type == OPEN_BUY){
+         return CLOSE_SELL;
+       }else{
+         return CLOSE_BUY;
+       }
+    }
+    return 0;
 }
