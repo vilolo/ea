@@ -229,7 +229,7 @@ int strategyClose(int i,
 
 int orderStop(){
     if(OrderType() == OP_BUY){
-        if(OrderOpenPrice()+10<Ask){    //止盈
+        if(OrderOpenPrice()+7<Ask){    //止盈
             return CLOSE_BUY_STOP_PROFIT;
         }
         if(OrderOpenPrice()-5>Bid){    //止损
@@ -237,7 +237,7 @@ int orderStop(){
         }
     }
     if(OrderType() == OP_SELL){
-        if(OrderOpenPrice()-10>Bid){    //止盈
+        if(OrderOpenPrice()-7>Bid){    //止盈
             return CLOSE_SELL_STOP_PROFIT;
         }
         if(OrderOpenPrice()+5<Ask){    //止损
