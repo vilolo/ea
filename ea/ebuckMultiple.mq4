@@ -32,9 +32,11 @@ void OnTick()
     string ttag = TimeCurrent()-(TimeCurrent()%3600);
     bool isOpenThisK = false;   //判断当前K不重复开单
 
+    openType = openStrategy();
+
     int ordersTotal = OrdersTotal();
     if(ordersTotal>0){
-        closeType = closeStrategy();
+        closeType = closeStrategy(openType);
 
         for(int cnt=0;cnt<ordersTotal;cnt++){
             if(
@@ -70,7 +72,6 @@ void OnTick()
     }
 
     if(!isOpenThisK && (isMultiple == 1 || ordersTotal == 0)){
-        openType = openStrategy();
         if(openType>0){
             if(openType == OPEN_BUY){
                 //todo open buy
@@ -98,14 +99,14 @@ void OnTick()
 }
 
 //=================== strategy 1 ================
-int closeStrategy1(){
+int closeStrategy1(int openType){
     return 0;
 }
 
 input int profitPoint = 20; 
 input int lossPoint = 8;
 int StopStrategy(){
-   return 0;
+    return 0;
 
     if(OrderType() == OP_BUY){
         if(OrderOpenPrice()+profitPoint<Ask){    //止盈
@@ -129,8 +130,8 @@ int StopStrategy(){
 
 //--- input parameters
 input int      ma1=6;
-input int      ma2=16;
-input int      ma3=29;
+input int      ma2=13;
+input int      ma3=25;
 
 input int      isMultiple=1;  //非1=单订单，1=多订单
 
@@ -224,6 +225,7 @@ int openStrategy1(){
     return type;
 }
 
+input int unduePrice = 5;
 int openStrategy(){
     int pi = 1;
     double pre1Ma1 = iMA(Symbol(),0,ma1,0,MODE_SMA,PRICE_CLOSE,pi);
@@ -237,28 +239,57 @@ int openStrategy(){
     double pre3Ma3 = iMA(Symbol(),0,ma3,0,MODE_SMA,PRICE_CLOSE,pi+2);
     
     int type = 0;
-    
+
     if(
         (pre1Ma2-pre1Ma3>0) != (pre2Ma2-pre2Ma3>0)  //2叉3
     ){
-      if(pre1Ma2 > pre1Ma3){
-         type = OPEN_BUY;
-      }else{
-         type = OPEN_SELL;
-      }
+        if(pre1Ma2 > pre1Ma3){
+            type = OPEN_BUY;
+        }else{
+            type = OPEN_SELL;
+        }
+    }else{  //补充横盘情况，用1叉2或斜率
+
+    }
+
+    //=== 小过滤 ===
+    //2变化幅度大于3变化幅度
+    if(
+        type != 0 &&
+        fabs(pre1Ma2-pre2Ma2) < fabs(pre1Ma3-pre2Ma3)
+    ){
+        type = 0;
+    }
+
+    //23斜率互抵
+    if(
+        type != 0 &&
+        (pre1Ma2-pre2Ma2>0) != (pre1Ma3-pre2Ma3>0)
+        && fabs( pre1Ma2-pre2Ma2 + pre1Ma3-pre2Ma3 )<offsetStd
+    ){
+        type = 0;
+    }
+
+    //看到时已经过猛了
+    if(
+        fabs(Close[1]-pre1Ma3) > unduePrice
+    ){
+        type = 0;
     }
     
     return type;
 }
 
-int closeStrategy(){
-    int type = openStrategy();
-    if(type != 0){
-       if(type == OPEN_BUY){
+int closeStrategy(int openType){
+    if(openType != 0){
+       if(openType == OPEN_BUY){
          return CLOSE_SELL;
        }else{
          return CLOSE_BUY;
        }
+    }else{
+
     }
+
     return 0;
 }
