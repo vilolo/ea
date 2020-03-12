@@ -104,13 +104,12 @@ int closeStrategy1(int openType){
 }
 
 input int profitPoint = 20; 
-input int lossPoint = 8;
+input int lossPoint = 9;
 int StopStrategy(){
-    return 0;
-
+    //return 0;
     if(OrderType() == OP_BUY){
         if(OrderOpenPrice()+profitPoint<Ask){    //止盈
-            return CLOSE_BUY;
+            //return CLOSE_BUY;
         }
         if(OrderOpenPrice()-lossPoint>Bid){    //止损
             return CLOSE_BUY;
@@ -118,7 +117,7 @@ int StopStrategy(){
     }
     if(OrderType() == OP_SELL){
         if(OrderOpenPrice()-profitPoint>Bid){    //止盈
-            return CLOSE_SELL;
+            //return CLOSE_SELL;
         }
         if(OrderOpenPrice()+lossPoint<Ask){    //止损
             return CLOSE_SELL;
@@ -129,9 +128,9 @@ int StopStrategy(){
 }
 
 //--- input parameters
-input int      ma1=6;
-input int      ma2=13;
-input int      ma3=25;
+// input int      ma1=6;
+// input int      ma2=13;
+// input int      ma3=25;
 
 input int      isMultiple=1;  //非1=单订单，1=多订单
 
@@ -226,7 +225,7 @@ int openStrategy1(){
 }
 
 input int unduePrice = 5;
-int openStrategy(){
+int openStrategy2(){
     int pi = 1;
     double pre1Ma1 = iMA(Symbol(),0,ma1,0,MODE_SMA,PRICE_CLOSE,pi);
     double pre2Ma1 = iMA(Symbol(),0,ma1,0,MODE_SMA,PRICE_CLOSE,pi+1);
@@ -280,7 +279,7 @@ int openStrategy(){
     return type;
 }
 
-int closeStrategy(int openType){
+int closeStrategy2(int openType){
     if(openType != 0){
        if(openType == OPEN_BUY){
          return CLOSE_SELL;
@@ -292,4 +291,93 @@ int closeStrategy(int openType){
     }
 
     return 0;
+}
+
+//======================== 按步骤 restart ============================
+
+input int      ma1=6;
+input int      ma2=13;
+input int      ma3=25;
+
+int openStrategy(){
+    int pi = 1;
+    double pre1Ma1 = iMA(Symbol(),0,ma1,0,MODE_SMA,PRICE_CLOSE,pi);
+    double pre2Ma1 = iMA(Symbol(),0,ma1,0,MODE_SMA,PRICE_CLOSE,pi+1);
+    double pre3Ma1 = iMA(Symbol(),0,ma1,0,MODE_SMA,PRICE_CLOSE,pi+2);
+    double pre1Ma2 = iMA(Symbol(),0,ma2,0,MODE_SMA,PRICE_CLOSE,pi);
+    double pre2Ma2 = iMA(Symbol(),0,ma2,0,MODE_SMA,PRICE_CLOSE,pi+1);
+    double pre3Ma2 = iMA(Symbol(),0,ma2,0,MODE_SMA,PRICE_CLOSE,pi+2);
+    double pre1Ma3 = iMA(Symbol(),0,ma3,0,MODE_SMA,PRICE_CLOSE,pi);
+    double pre2Ma3 = iMA(Symbol(),0,ma3,0,MODE_SMA,PRICE_CLOSE,pi+1);
+    double pre3Ma3 = iMA(Symbol(),0,ma3,0,MODE_SMA,PRICE_CLOSE,pi+2);
+
+    int type = 0;
+
+    if(
+        (pre1Ma2-pre1Ma3>0) != (pre2Ma2-pre2Ma3>0)  //2叉3
+    ){
+        if(pre1Ma2 > pre1Ma3){
+            type = OPEN_BUY;
+        }else{
+            type = OPEN_SELL;
+        }
+    }
+
+    return type;
+}
+
+input int threshold = 5; //阈值
+input double leadWireRatio = 0.6;
+int closeStrategy(int openType){
+    int type = 0;
+    
+    if(openType != 0){
+       if(openType == OPEN_BUY){
+         type = CLOSE_SELL;
+       }else{
+         type = CLOSE_BUY;
+       }
+    }
+
+    double pre1Ma2 = iMA(Symbol(),0,ma2,0,MODE_SMA,PRICE_CLOSE,1);
+    double pre1Ma3 = iMA(Symbol(),0,ma3,0,MODE_SMA,PRICE_CLOSE,1);
+    
+    //判断行情尽头遇阻，上下引线判断
+    if(type == 0){
+        if(pre1Ma2>pre1Ma3 && High[1]-Low[1]>threshold
+            && (High[1]-Close[1])/(High[1]-Low[1])>leadWireRatio  //上影线大于开盘到最低的某个比例
+        ){
+            type = CLOSE_BUY;
+        }
+
+        if(pre1Ma2<pre1Ma3 && High[1]-Low[1]>threshold
+            && (Close[1]-Low[1])/(High[1]-Low[1])>leadWireRatio  //上影线大于开盘到最低的某个比例
+        ){
+            type = CLOSE_SELL;
+        }
+    }
+
+    //连续3根k线与k线顺序不一致
+    if(type == 0){
+        if(pre1Ma2>pre1Ma3
+            && Close[1]<pre1Ma3 && Close[2]<pre1Ma3 && Close[3]<pre1Ma3
+        ){
+            //type = CLOSE_BUY;
+        }
+
+        if(pre1Ma2<pre1Ma3
+            && Close[1]>pre1Ma3 && Close[2]>pre1Ma3 && Close[3]>pre1Ma3
+        ){
+            //type = CLOSE_SELL;
+        }
+    }
+
+    //判断行情突然断崖
+    if(type == 0){
+        if(pre1Ma2>pre1Ma3){
+
+        }
+    }
+
+    return type;
 }
