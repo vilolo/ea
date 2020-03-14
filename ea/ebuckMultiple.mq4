@@ -3,6 +3,7 @@
 #property version   "1.00"
 #property strict
 
+input int      isMultiple=1;  //非1=单订单，1=多订单
 
 //============ strategy init ================
 
@@ -112,6 +113,7 @@ int StopStrategy(){
             //return CLOSE_BUY;
         }
         if(OrderOpenPrice()-lossPoint>Bid){    //止损
+            printf("========");
             return CLOSE_BUY;
         }
     }
@@ -132,10 +134,8 @@ int StopStrategy(){
 // input int      ma2=13;
 // input int      ma3=25;
 
-input int      isMultiple=1;  //非1=单订单，1=多订单
-
-input double    offsetStd=0.005;   //互相抵消的临界值    0.005 or 0.018
-input double    slopeStd=2;
+double    offsetStd=0.005;   //互相抵消的临界值    0.005 or 0.018
+double    slopeStd=2;
 
 int openStrategy1(){
     int pi = 1;
@@ -224,7 +224,7 @@ int openStrategy1(){
     return type;
 }
 
-input int unduePrice = 5;
+int unduePrice = 5;
 int openStrategy2(){
     int pi = 1;
     double pre1Ma1 = iMA(Symbol(),0,ma1,0,MODE_SMA,PRICE_CLOSE,pi);
@@ -293,13 +293,13 @@ int closeStrategy2(int openType){
     return 0;
 }
 
-//======================== 按步骤 restart ============================
+//======================== 3 按步骤 restart ============================
 
-input int      ma1=6;
-input int      ma2=13;
-input int      ma3=25;
+// input int      ma1=6;
+// input int      ma2=13;
+// input int      ma3=25;
 
-int openStrategy(){
+int openStrategy3(){
     int pi = 1;
     double pre1Ma1 = iMA(Symbol(),0,ma1,0,MODE_SMA,PRICE_CLOSE,pi);
     double pre2Ma1 = iMA(Symbol(),0,ma1,0,MODE_SMA,PRICE_CLOSE,pi+1);
@@ -326,9 +326,9 @@ int openStrategy(){
     return type;
 }
 
-input int threshold = 5; //阈值
-input double leadWireRatio = 0.6;
-int closeStrategy(int openType){
+int threshold = 5; //阈值
+double leadWireRatio = 0.6;
+int closeStrategy3(int openType){
     int type = 0;
     
     if(openType != 0){
@@ -377,6 +377,87 @@ int closeStrategy(int openType){
         if(pre1Ma2>pre1Ma3){
 
         }
+    }
+
+    return type;
+}
+
+//========================== 4 用k线加均线开单 ==================================
+
+//== 两均线+三K线 ==
+//看K线收盘和两均线的位置关系
+//1.慢，快，k       海底月 -> 升海日
+//2.慢，k，快       黎明前 海日
+//3.k，快慢or慢快   初阳 -> 午日
+//4.k，快，慢       午日
+//5.快，k，慢       落日前 云阳
+//6.快慢or慢快,k    初月
+//7.慢，快，k       沉海月 -> 海底月
+
+//=== open ===
+//buy：海日，初阳
+//sell：云阳，初月
+
+//=== close ===
+//buy：午日，云阳       止损：初月，沉海月，海底月
+//sell：海底月，海日    止损：初阳，升阳，午阳
+
+input int      ma1=6;
+input int      ma2=13;
+input int      ma3=25;
+
+int openStrategy(){
+    int type = 0;
+    double pre1Ma2 = iMA(Symbol(),0,ma2,0,MODE_SMA,PRICE_CLOSE,1);
+    double pre2Ma2 = iMA(Symbol(),0,ma2,0,MODE_SMA,PRICE_CLOSE,2);
+    double pre3Ma2 = iMA(Symbol(),0,ma2,0,MODE_SMA,PRICE_CLOSE,3);
+    double pre4Ma2 = iMA(Symbol(),0,ma2,0,MODE_SMA,PRICE_CLOSE,4);
+    double pre1Ma3 = iMA(Symbol(),0,ma3,0,MODE_SMA,PRICE_CLOSE,1);
+    double pre2Ma3 = iMA(Symbol(),0,ma3,0,MODE_SMA,PRICE_CLOSE,2);
+    double pre3Ma3 = iMA(Symbol(),0,ma3,0,MODE_SMA,PRICE_CLOSE,3);
+    double pre4Ma3 = iMA(Symbol(),0,ma3,0,MODE_SMA,PRICE_CLOSE,4);
+
+    //海日
+    if(
+        pre1Ma2>pre4Ma2
+        && Close[1]>pre1Ma2
+        && Close[2]>pre2Ma2
+        && Close[3]<pre3Ma2
+    ){
+        type = OPEN_BUY;
+    }
+
+    return type;
+}
+
+int closeStrategy(int openType){
+    int type = 0;
+
+    if(openType != 0){
+       if(openType == OPEN_BUY){
+         type = CLOSE_SELL;
+       }else{
+         type = CLOSE_BUY;
+       }
+    }
+
+    double pre1Ma2 = iMA(Symbol(),0,ma2,0,MODE_SMA,PRICE_CLOSE,1);
+    double pre2Ma2 = iMA(Symbol(),0,ma2,0,MODE_SMA,PRICE_CLOSE,2);
+    double pre3Ma2 = iMA(Symbol(),0,ma2,0,MODE_SMA,PRICE_CLOSE,3);
+    double pre4Ma2 = iMA(Symbol(),0,ma2,0,MODE_SMA,PRICE_CLOSE,4);
+    double pre1Ma3 = iMA(Symbol(),0,ma3,0,MODE_SMA,PRICE_CLOSE,1);
+    double pre2Ma3 = iMA(Symbol(),0,ma3,0,MODE_SMA,PRICE_CLOSE,2);
+    double pre3Ma3 = iMA(Symbol(),0,ma3,0,MODE_SMA,PRICE_CLOSE,3);
+    double pre4Ma3 = iMA(Symbol(),0,ma3,0,MODE_SMA,PRICE_CLOSE,4);
+
+    //云日
+    if(type == 0 &&
+        pre1Ma2<pre4Ma2
+        && Close[1]<pre1Ma2
+        && Close[2]<pre2Ma2
+        && Close[3]>pre3Ma2
+    ){
+        type = CLOSE_BUY;
     }
 
     return type;
