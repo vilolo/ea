@@ -39,6 +39,11 @@ string tips[20];
 string objNameReferenceUp = "referenceLineUp";  //参考线
 string objNameReferenceDown = "referenceLineDown";
 
+#define OOPEN_BUY 1
+#define OOPEN_SELL 2
+#define CLOSE_BUY 11
+#define CLOSE_SELL 12
+
 int OnInit()
 {
     SetIndexBuffer(0,ma1Buffer);
@@ -46,7 +51,7 @@ int OnInit()
     SetIndexBuffer(2,ma3Buffer);
 
     long handle=ChartID(); 
-    if(handle>0) // If it succeeded, additionally customize 
+    if(handle>0)
     { 
         ChartSetInteger(handle, CHART_SCALE, 3);
         ChartSetInteger(handle,CHART_AUTOSCROLL,true); 
@@ -112,6 +117,7 @@ void drawMa(int i){
    ma3Buffer[i] = iMA(Symbol(),0,ma3,0,MODE_SMA,PRICE_CLOSE,i);
 }
 
+
 int tempi;
 bool isFirst = true;
 int kpool = 80;
@@ -135,8 +141,17 @@ int OnCalculate(const int rates_total,
         if(i+110>rates_total) break;
 
         drawMa(i);
+        int type = 0;
 
-        
+        type = strategyOpen(i);
+
+        if(type>0){
+            switch(type){
+                case OOPEN_BUY:
+                    drawVline(i, clrRed);
+                    break;
+            }
+        }
     }
 
     return rates_total;
@@ -150,5 +165,87 @@ void drawText(int i, string text, int clr = clrRed){
     ObjectSetInteger(chart_ID,objName,OBJPROP_COLOR,clr); 
     ObjectSetString(chart_ID,objName,OBJPROP_TEXT,text);
     ObjectSetInteger(chart_ID,objName,OBJPROP_FONTSIZE,12);
+}
+
+void drawVline(int i, int clr = clrRed){
+    string objName = "vline_";
+    StringAdd(objName, Time[i]);
+    ObjectCreate(chart_ID, objName, OBJ_VLINE, 0, Time[i], 0);
+    ObjectSetInteger(chart_ID,objName,OBJPROP_TIMEFRAMES,OBJ_PERIOD_H1);
+    ObjectSetInteger(chart_ID,objName,OBJPROP_COLOR,clr); 
+}
+
+//=========== strategy =================
+
+int strategyOpen(int i){
+    int type = 0;
+
+    //确定前期情况，鱼尾巴甩动一样感知，向前找转折点，与当前点相减正负不一致并且大于10的点算个转折点，4点3条折线
+    //当前点过来的第二个点是不是比较特殊，不一定与当前点差很远
+    double point2Price=0;
+    double point2Gap=0;
+    int point2Position=0;
+    double point3Price=0;
+    double point3Gap=0;
+    int point3Position=0;
+    double point4Price=0;
+    double point4Gap=0;
+    int point4Position=0;
+
+    double kPrice;
+    double curPrice = iMA(Symbol(),0,1,0,MODE_SMA,PRICE_CLOSE,i);
+
+    for(int pi=1;pi<kpool;pi++){
+        kPrice = iMA(Symbol(),0,1,0,MODE_SMA,PRICE_CLOSE,i+pi);
+        if(point3Price == 0){
+            if(point2Price == 0){
+                point2Price == kPrice;
+            }else{
+                if(curPrice-kPrice>0 == curPrice-point2Price>0){    //同向
+                    if(fabs(curPrice-kPrice)>fabs(curPrice-point2Price)){
+                        point2Price = kPrice;
+                    }
+                }else{
+                    if(fabs(curPrice-kPrice)>fabs(curPrice-point2Price)){
+                        if(fabs(curPrice-kPrice) > 5){
+                            point3Price = kPrice;
+                        }else{
+                            point2Price = kPrice;
+                        }
+                    }
+                }
+            }
+        }else{
+            if(point4Price == 0){
+                if(curPrice-kPrice>0 == curPrice-point3Price>0){
+                    point2Price = kPrice;
+                }else{
+                    if(fabs(curPrice-kPrice)>fabs(curPrice-point2Price)){
+                        if(fabs(curPrice-kPrice) > 5){
+                            point3Price = kPrice;
+                        }else{
+                            point2Price = kPrice;
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    type = type!=0?type:buyOpen(i);
+    type = type!=0?type:sellOpen(i);
+
+    return type;
+}
+
+int buyOpen(int i){
+    int type = 0;
+
+    return type;
+}
+
+int sellOpen(int i){
+    int type = 0;
+    return type;
 }
 
