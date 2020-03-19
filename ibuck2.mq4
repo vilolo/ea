@@ -135,8 +135,6 @@ int OnCalculate(const int rates_total,
     ObjectSet(objNameReferenceUp,1,close[0]+5);
     ObjectSet(objNameReferenceDown,1,close[0]-5);
 
-    drawTrend(Time[10], 1500, Time[20], 1600);
-
     tempi = (isFirst ? rates_total-kpool : 100);
     for(int i=0;i<tempi;i++){
         if(isFirst) isFirst=false;
@@ -209,9 +207,11 @@ int strategyOpen(int i){
     double kPrice;
     double curPrice = iMA(Symbol(),0,1,0,MODE_SMA,PRICE_CLOSE,i);
 
-    //ma1叉2的时候判断
+    type = type!=0?type:buyOpen(i);
+    type = type!=0?type:sellOpen(i);
+
     if(
-        (pre1Ma1-pre1Ma2)>0 != (pre2Ma1-pre2Ma2)>0
+        type>0
     ){
         for(int pi=1;pi<kpool;pi++){
             kPrice = iMA(Symbol(),0,1,0,MODE_SMA,PRICE_CLOSE,i+pi);
@@ -268,9 +268,6 @@ int strategyOpen(int i){
         }
     }
 
-    type = type!=0?type:buyOpen(i);
-    type = type!=0?type:sellOpen(i);
-
     return type;
 }
 
@@ -278,8 +275,59 @@ int strategyOpen(int i){
 //或者短均线
 int buyOpen(int i){
     int type = 0;
-
     
+    int pi = 1;
+    double pre1Ma1 = iMA(Symbol(),0,ma1,0,MODE_SMA,PRICE_CLOSE,i+pi);
+    double pre2Ma1 = iMA(Symbol(),0,ma1,0,MODE_SMA,PRICE_CLOSE,i+pi+1);
+    double pre1Ma2 = iMA(Symbol(),0,ma2,0,MODE_SMA,PRICE_CLOSE,i+pi);
+    double pre2Ma2 = iMA(Symbol(),0,ma2,0,MODE_SMA,PRICE_CLOSE,i+pi+1);
+    double pre1Ma3 = iMA(Symbol(),0,ma3,0,MODE_SMA,PRICE_CLOSE,i+pi);
+    double pre2Ma3 = iMA(Symbol(),0,ma3,0,MODE_SMA,PRICE_CLOSE,i+pi+1);
+
+   double pre3Ma1 = iMA(Symbol(),0,ma1,0,MODE_SMA,PRICE_CLOSE,i+3);
+   double pre4Ma1 = iMA(Symbol(),0,ma1,0,MODE_SMA,PRICE_CLOSE,i+4);
+   double pre3Ma3 = iMA(Symbol(),0,ma3,0,MODE_SMA,PRICE_CLOSE,i+3);
+   double pre3Ma2 = iMA(Symbol(),0,ma2,0,MODE_SMA,PRICE_CLOSE,i+3);
+   if(
+      pre1Ma1>pre1Ma2 && pre2Ma1<pre2Ma2
+      && pre1Ma2<pre1Ma3
+      && pre1Ma2>pre2Ma2
+   ){
+      type = OOPEN_BUY;
+      
+      string text = "";
+      
+      //ma1 不能加速向下
+      if(
+         pre1Ma1-pre2Ma1<pre2Ma1-pre3Ma1
+      ){
+         StringAdd(text, "1,");
+      }
+      
+      //ma1 ma2 不能同时向下
+      if(
+         pre1Ma1<pre2Ma1 && pre1Ma2<pre2Ma2
+      ){
+         StringAdd(text, "2,");
+      }
+      
+      //k线不能低于ma1
+      if(
+         Close[i+1]<pre1Ma1
+      ){
+         StringAdd(text, "3,");
+      }
+      
+      //ma3不能加速向下
+      if(
+         pre1Ma3<pre2Ma3
+         && (pre1Ma3-pre2Ma3)-(pre2Ma3-pre3Ma3)<0.01
+      ){
+         StringAdd(text, "4,");
+      }
+      
+      drawText(i, text);
+   }
 
     return type;
 }

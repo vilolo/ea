@@ -419,10 +419,13 @@ int openStrategy(){
 
     //海日
     if(
-        pre1Ma2>pre4Ma2
-        && Close[1]>pre1Ma2
-        && Close[2]>pre2Ma2
-        && Close[3]<pre3Ma2
+        pre2Ma2<pre2Ma3
+        && pre1Ma2>pre1Ma3 //上叉
+        && Close[1]>pre1Ma3   //大于3均线
+        && (pre1Ma2-pre2Ma2)>fabs(pre1Ma3-pre2Ma3) //2斜率大于3并且为上钩
+        && High[1]-pre1Ma2<6  //交叉处K线不能涨得太高
+        //&& (High[1]-Open[1])>(High[2]-Open[2])/2   //k线的正走向不能小于前一根正走向的一半
+        //&& (Open[1]-Low[1])<(Open[2]-Low[2])
     ){
         type = OPEN_BUY;
     }
@@ -452,10 +455,8 @@ int closeStrategy(int openType){
 
     //云日
     if(type == 0 &&
-        pre1Ma2<pre4Ma2
-        && Close[1]<pre1Ma2
-        && Close[2]<pre2Ma2
-        && Close[3]>pre3Ma2
+        pre2Ma2>pre2Ma3 &&
+        pre1Ma2<pre1Ma3
     ){
         type = CLOSE_BUY;
     }

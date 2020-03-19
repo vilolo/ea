@@ -172,7 +172,7 @@ int OnCalculate(const int rates_total,
                 pre1Ma1,pre2Ma1,pre1Ma2,pre2Ma2,pre1Ma3,pre2Ma3);
 
         if(openType > 0){
-            //drawOpen(openType, time[i], open[i]);
+            drawOpen(openType, time[i], open[i]);
         }
 
         int closeType = strategyClose(i,
@@ -288,7 +288,7 @@ void drawClose(int type, datetime t, double openPrice){
             clr = clrRed;
             break;
     }
-
+    StringAdd(objName, t);
     ObjectCreate(chart_ID, objName, OBJ_TEXT, 0, t, openPrice+5);
     ObjectSetInteger(chart_ID,objName,OBJPROP_TIMEFRAMES,OBJ_PERIOD_H1);
     ObjectSetInteger(chart_ID,objName,OBJPROP_COLOR,clr); 
@@ -296,9 +296,21 @@ void drawClose(int type, datetime t, double openPrice){
     ObjectSetInteger(chart_ID,objName,OBJPROP_FONTSIZE,14);
 }
 
+void drawRemark(string text, datetime t, double openPrice){
+    string objName = "text_";
+    int clr = clrAquamarine;
+
+    StringAdd(objName, t);
+    ObjectCreate(chart_ID, objName, OBJ_TEXT, 0, t, openPrice+5);
+    ObjectSetInteger(chart_ID,objName,OBJPROP_TIMEFRAMES,OBJ_PERIOD_H1);
+    ObjectSetInteger(chart_ID,objName,OBJPROP_COLOR,clr); 
+    ObjectSetString(chart_ID,objName,OBJPROP_TEXT,text);
+    ObjectSetInteger(chart_ID,objName,OBJPROP_FONTSIZE,14);
+}
+
 // --------------------------------- public --------------------------------------
 
-int strategyOpen(int i, 
+int strategyOpen1(int i, 
     double pre1Ma1,double pre2Ma1,double pre1Ma2,double pre2Ma2,double pre1Ma3,double pre2Ma3
 ){
     int type = 0;
@@ -388,4 +400,57 @@ int strategyOpen(int i,
 int strategyClose(int i, 
     double pre1Ma1,double pre2Ma1,double pre1Ma2,double pre2Ma2,double pre1Ma3,double pre2Ma3){
     return 0;
+}
+
+//============= 2 ===================
+int strategyOpen(int i, 
+    double pre1Ma1,double pre2Ma1,double pre1Ma2,double pre2Ma2,double pre1Ma3,double pre2Ma3
+){
+   int type = 0;
+   double pre3Ma1 = iMA(Symbol(),0,ma1,0,MODE_SMA,PRICE_CLOSE,i+3);
+   double pre4Ma1 = iMA(Symbol(),0,ma1,0,MODE_SMA,PRICE_CLOSE,i+4);
+   double pre3Ma3 = iMA(Symbol(),0,ma3,0,MODE_SMA,PRICE_CLOSE,i+3);
+   double pre3Ma2 = iMA(Symbol(),0,ma2,0,MODE_SMA,PRICE_CLOSE,i+3);
+   if(
+      pre1Ma1>pre1Ma2 && pre2Ma1<pre2Ma2
+      && pre1Ma2<pre1Ma3
+      && pre1Ma2>pre2Ma2
+   ){
+      type = UP_13_UU;
+      
+      string text = "";
+      
+      //ma1 不能加速向下
+      if(
+         pre1Ma1-pre2Ma1<pre2Ma1-pre3Ma1
+      ){
+         StringAdd(text, "1,");
+      }
+      
+      //ma1 ma2 不能同时向下
+      if(
+         pre1Ma1<pre2Ma1 && pre1Ma2<pre2Ma2
+      ){
+         StringAdd(text, "2,");
+      }
+      
+      //k线不能低于ma1
+      if(
+         Close[i+1]<pre1Ma1
+      ){
+         StringAdd(text, "3,");
+      }
+      
+      //ma3不能加速向下
+      if(
+         pre1Ma3<pre2Ma3
+         && (pre1Ma3-pre2Ma3)-(pre2Ma3-pre3Ma3)<0.01
+      ){
+         StringAdd(text, "4,");
+      }
+      
+      //drawRemark(text, Time[i], Close[i]);
+   }
+   
+   return type;
 }
