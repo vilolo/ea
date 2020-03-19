@@ -135,6 +135,8 @@ int OnCalculate(const int rates_total,
     ObjectSet(objNameReferenceUp,1,close[0]+5);
     ObjectSet(objNameReferenceDown,1,close[0]-5);
 
+    drawTrend(Time[10], 1500, Time[20], 1600);
+
     tempi = (isFirst ? rates_total-kpool : 100);
     for(int i=0;i<tempi;i++){
         if(isFirst) isFirst=false;
@@ -168,10 +170,17 @@ void drawText(int i, string text, int clr = clrRed){
 }
 
 void drawVline(int i, int clr = clrRed){
-    string objName = "vline_";
-    StringAdd(objName, Time[i]);
+    string objName = "vline_"+Time[i];
     ObjectCreate(chart_ID, objName, OBJ_VLINE, 0, Time[i], 0);
     ObjectSetInteger(chart_ID,objName,OBJPROP_TIMEFRAMES,OBJ_PERIOD_H1);
+    ObjectSetInteger(chart_ID,objName,OBJPROP_COLOR,clr); 
+}
+
+void drawTrend(datetime time1, double price1, datetime time2, double price2, int clr = clrRed){
+    string objName = "trend_"+time1+"_"+time2;
+    ObjectCreate(chart_ID, objName, OBJ_TREND, 0, time1,price1,time2,price2);
+    ObjectSetInteger(chart_ID,objName,OBJPROP_TIMEFRAMES,OBJ_PERIOD_H1);
+    ObjectSetInteger(chart_ID,objName,OBJPROP_RAY_RIGHT,false); 
     ObjectSetInteger(chart_ID,objName,OBJPROP_COLOR,clr); 
 }
 
@@ -192,42 +201,69 @@ int strategyOpen(int i){
     double point4Gap=0;
     int point4Position=0;
 
+    double pre1Ma1 = iMA(Symbol(),0,ma1,0,MODE_SMA,PRICE_CLOSE,i+1);
+    double pre2Ma1 = iMA(Symbol(),0,ma1,0,MODE_SMA,PRICE_CLOSE,i+2);
+    double pre1Ma2 = iMA(Symbol(),0,ma2,0,MODE_SMA,PRICE_CLOSE,i+1);
+    double pre2Ma2 = iMA(Symbol(),0,ma2,0,MODE_SMA,PRICE_CLOSE,i+2);
+
     double kPrice;
     double curPrice = iMA(Symbol(),0,1,0,MODE_SMA,PRICE_CLOSE,i);
 
-    for(int pi=1;pi<kpool;pi++){
-        kPrice = iMA(Symbol(),0,1,0,MODE_SMA,PRICE_CLOSE,i+pi);
-        if(point3Price == 0){
-            if(point2Price == 0){
-                point2Price == kPrice;
+    //ma1叉2的时候判断
+    if(
+        (pre1Ma1-pre1Ma2)>0 != (pre2Ma1-pre2Ma2)>0
+    ){
+        for(int pi=1;pi<kpool;pi++){
+            kPrice = iMA(Symbol(),0,1,0,MODE_SMA,PRICE_CLOSE,i+pi);
+            if(point3Price == 0){
+                if(point2Price == 0){
+                    point2Price = kPrice;
+                    point2Gap = fabs(curPrice-point2Price);
+                    point2Position = pi;
+                }else{
+                    //判断与最新的p2的差距是否大于5，不大于就取与p1差距大的，相当于5内的变化不算趋势
+                    if(fabs(kPrice-point2Price)>5){
+                        point3Price = kPrice;   //封2
+                        point3Gap = fabs(point3Price-point2Price);
+                        point3Position = pi;
+                    }else{
+                        if(fabs(curPrice-kPrice)>fabs(curPrice-point2Price)){   //取变化幅度更大的
+                            point2Price = kPrice;
+                            point2Gap = fabs(curPrice-point2Price);
+                            point2Position = pi;
+                        }
+                    }
+                }
             }else{
-                if(curPrice-kPrice>0 == curPrice-point2Price>0){    //同向
-                    if(fabs(curPrice-kPrice)>fabs(curPrice-point2Price)){
-                        point2Price = kPrice;
+                if(point4Price == 0){
+                    if(fabs(kPrice-point3Price)>5){
+                        point4Price = kPrice;   //封3
+                        point4Gap = fabs(point4Price-point3Price);
+                        point4Position = pi;
+                    }else{
+                        if(fabs(point2Price-kPrice)>fabs(point2Price-point3Price)){   //取变化幅度更大的
+                            point3Price = kPrice;
+                            point3Gap = fabs(point3Price-point2Price);
+                            point3Position = pi;
+                        }
                     }
                 }else{
-                    if(fabs(curPrice-kPrice)>fabs(curPrice-point2Price)){
-                        if(fabs(curPrice-kPrice) > 5){
-                            point3Price = kPrice;
-                        }else{
-                            point2Price = kPrice;
-                        }
+                    if(fabs(point3Price-kPrice)>fabs(point3Price-point4Price)){   //取变化幅度更大的
+                        point4Price = kPrice;
+                        point4Gap = fabs(point4Price-point3Price);
+                        point4Position = pi;
                     }
                 }
             }
-        }else{
-            if(point4Price == 0){
-                if(curPrice-kPrice>0 == curPrice-point3Price>0){
-                    point2Price = kPrice;
-                }else{
-                    if(fabs(curPrice-kPrice)>fabs(curPrice-point2Price)){
-                        if(fabs(curPrice-kPrice) > 5){
-                            point3Price = kPrice;
-                        }else{
-                            point2Price = kPrice;
-                        }
-                    }
-                }
+        }
+    }
+
+    if(point2Price>0){
+        drawTrend(Time[i], curPrice, Time[i+point2Position], point2Price);
+        if(point3Price>0){
+            drawTrend(Time[i+point2Position], point2Price, Time[i+point3Position], point3Price);
+            if(point4Price>0){
+                drawTrend(Time[i+point3Position], point3Price, Time[i+point4Position], point4Price);
             }
         }
     }
@@ -238,8 +274,12 @@ int strategyOpen(int i){
     return type;
 }
 
+//参考的是一小撮k线，不是2，3根
+//或者短均线
 int buyOpen(int i){
     int type = 0;
+
+    
 
     return type;
 }
