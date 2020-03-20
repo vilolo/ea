@@ -199,11 +199,6 @@ int strategyOpen(int i){
     double point4Gap=0;
     int point4Position=0;
 
-    double pre1Ma1 = iMA(Symbol(),0,ma1,0,MODE_SMA,PRICE_CLOSE,i+1);
-    double pre2Ma1 = iMA(Symbol(),0,ma1,0,MODE_SMA,PRICE_CLOSE,i+2);
-    double pre1Ma2 = iMA(Symbol(),0,ma2,0,MODE_SMA,PRICE_CLOSE,i+1);
-    double pre2Ma2 = iMA(Symbol(),0,ma2,0,MODE_SMA,PRICE_CLOSE,i+2);
-
     double kPrice;
     double curPrice = iMA(Symbol(),0,1,0,MODE_SMA,PRICE_CLOSE,i);
 
@@ -213,58 +208,76 @@ int strategyOpen(int i){
     if(
         type>0
     ){
+        //记录最大最小看最大最小，谁先后面轮空多少根
+        double compareCount = 6;
+        double tempMax = 0;
+        double tempMin = 0;
+        double tempMaxCount = 0;
+        double tempMinCount = 0;
+        int tempMaxIndex = 0;
+        int tempMinIndex = 0;
+        double tempPrice;
+        int tempIndex;
         for(int pi=1;pi<kpool;pi++){
+            tempMaxCount++;
+            tempMinCount++;
+            
             kPrice = iMA(Symbol(),0,1,0,MODE_SMA,PRICE_CLOSE,i+pi);
-            if(point3Price == 0){
-                if(point2Price == 0){
-                    point2Price = kPrice;
-                    point2Gap = fabs(curPrice-point2Price);
-                    point2Position = pi;
-                }else{
-                    //判断与最新的p2的差距是否大于5，不大于就取与p1差距大的，相当于5内的变化不算趋势
-                    if(fabs(kPrice-point2Price)>5){
-                        point3Price = kPrice;   //封2
-                        point3Gap = fabs(point3Price-point2Price);
-                        point3Position = pi;
-                    }else{
-                        if(fabs(curPrice-kPrice)>fabs(curPrice-point2Price)){   //取变化幅度更大的
-                            point2Price = kPrice;
-                            point2Gap = fabs(curPrice-point2Price);
-                            point2Position = pi;
-                        }
-                    }
+            if(curPrice-kPrice>0){  //找最小
+                if(tempMin==0 || tempMin>kPrice){
+                    tempMin = kPrice;
+                    tempMinCount = 0;
+                    tempMinIndex = pi;
                 }
             }else{
-                if(point4Price == 0){
-                    if(fabs(kPrice-point3Price)>5){
-                        point4Price = kPrice;   //封3
-                        point4Gap = fabs(point4Price-point3Price);
-                        point4Position = pi;
-                    }else{
-                        if(fabs(point2Price-kPrice)>fabs(point2Price-point3Price)){   //取变化幅度更大的
-                            point3Price = kPrice;
-                            point3Gap = fabs(point3Price-point2Price);
-                            point3Position = pi;
-                        }
-                    }
+                if(tempMax==0 || tempMax<kPrice){
+                    tempMax = kPrice;
+                    tempMaxCount = 0;
+                    tempMaxIndex = pi;
+                }
+            }
+
+            if(
+                (tempMaxCount>compareCount || tempMinCount>compareCount) &&
+                (tempMax>0 && tempMin>0)
+            ){
+                if(tempMaxCount>compareCount){
+                    tempMaxCount = 0;
+                    tempPrice = tempMax;
+                    tempIndex = tempMaxIndex;
                 }else{
-                    if(fabs(point3Price-kPrice)>fabs(point3Price-point4Price)){   //取变化幅度更大的
-                        point4Price = kPrice;
-                        point4Gap = fabs(point4Price-point3Price);
-                        point4Position = pi;
+                    tempMinCount = 0;
+                    tempPrice = tempMin;
+                    tempIndex = tempMinIndex;
+                }
+
+                if(point2Price == 0){
+                    point2Price = tempPrice;
+                    point2Position = tempIndex;
+                }else{
+                    if(point3Price == 0){
+                        point3Price = tempPrice;
+                        point3Position = tempIndex;
+                    }else{
+                        point4Price = tempPrice;
+                        point4Position = tempIndex;
                     }
                 }
             }
         }
-    }
 
-    if(point2Price>0){
-        drawTrend(Time[i], curPrice, Time[i+point2Position], point2Price);
-        if(point3Price>0){
-            drawTrend(Time[i+point2Position], point2Price, Time[i+point3Position], point3Price);
-            if(point4Price>0){
-                drawTrend(Time[i+point3Position], point3Price, Time[i+point4Position], point4Price);
+        if(point2Price>0){
+            drawTrend(Time[i], curPrice, Time[i+point2Position], point2Price);
+            if(point3Price>0){
+                drawTrend(Time[i+point2Position], point2Price, Time[i+point3Position], point3Price);
+                if(point4Price>0){
+                    drawTrend(Time[i+point3Position], point3Price, Time[i+point4Position], point4Price);
+                }
             }
+        }
+
+        if(point4Price>point2Price){
+            drawText(i, "xxx");
         }
     }
 
@@ -272,62 +285,32 @@ int strategyOpen(int i){
 }
 
 //参考的是一小撮k线，不是2，3根
-//或者短均线
+//或者对比与短均线关系
 int buyOpen(int i){
     int type = 0;
-    
-    int pi = 1;
-    double pre1Ma1 = iMA(Symbol(),0,ma1,0,MODE_SMA,PRICE_CLOSE,i+pi);
-    double pre2Ma1 = iMA(Symbol(),0,ma1,0,MODE_SMA,PRICE_CLOSE,i+pi+1);
-    double pre1Ma2 = iMA(Symbol(),0,ma2,0,MODE_SMA,PRICE_CLOSE,i+pi);
-    double pre2Ma2 = iMA(Symbol(),0,ma2,0,MODE_SMA,PRICE_CLOSE,i+pi+1);
-    double pre1Ma3 = iMA(Symbol(),0,ma3,0,MODE_SMA,PRICE_CLOSE,i+pi);
-    double pre2Ma3 = iMA(Symbol(),0,ma3,0,MODE_SMA,PRICE_CLOSE,i+pi+1);
 
-   double pre3Ma1 = iMA(Symbol(),0,ma1,0,MODE_SMA,PRICE_CLOSE,i+3);
-   double pre4Ma1 = iMA(Symbol(),0,ma1,0,MODE_SMA,PRICE_CLOSE,i+4);
-   double pre3Ma3 = iMA(Symbol(),0,ma3,0,MODE_SMA,PRICE_CLOSE,i+3);
-   double pre3Ma2 = iMA(Symbol(),0,ma2,0,MODE_SMA,PRICE_CLOSE,i+3);
-   if(
-      pre1Ma1>pre1Ma2 && pre2Ma1<pre2Ma2
-      && pre1Ma2<pre1Ma3
-      && pre1Ma2>pre2Ma2
-   ){
-      type = OOPEN_BUY;
-      
-      string text = "";
-      
-      //ma1 不能加速向下
-      if(
-         pre1Ma1-pre2Ma1<pre2Ma1-pre3Ma1
-      ){
-         StringAdd(text, "1,");
-      }
-      
-      //ma1 ma2 不能同时向下
-      if(
-         pre1Ma1<pre2Ma1 && pre1Ma2<pre2Ma2
-      ){
-         StringAdd(text, "2,");
-      }
-      
-      //k线不能低于ma1
-      if(
-         Close[i+1]<pre1Ma1
-      ){
-         StringAdd(text, "3,");
-      }
-      
-      //ma3不能加速向下
-      if(
-         pre1Ma3<pre2Ma3
-         && (pre1Ma3-pre2Ma3)-(pre2Ma3-pre3Ma3)<0.01
-      ){
-         StringAdd(text, "4,");
-      }
-      
-      drawText(i, text);
-   }
+    double pre1Ma1 = iMA(Symbol(),0,ma1,0,MODE_SMA,PRICE_CLOSE,i+1);
+    double pre2Ma1 = iMA(Symbol(),0,ma1,0,MODE_SMA,PRICE_CLOSE,i+2);
+    double pre3Ma1 = iMA(Symbol(),0,ma1,0,MODE_SMA,PRICE_CLOSE,i+3);
+
+    if(
+        pre1Ma1<Close[i]
+        && pre2Ma1>Close[i+1]
+        && pre3Ma1>Close[i+2]
+    ){
+        type = OOPEN_BUY;
+        
+        string text = "";
+        
+        //ma1 不能加速向下
+        if(
+            pre1Ma1-pre2Ma1<pre2Ma1-pre3Ma1
+        ){
+            StringAdd(text, "1,");
+        }
+        
+        drawText(i, text);
+    }
 
     return type;
 }
