@@ -113,7 +113,6 @@ int StopStrategy(){
             //return CLOSE_BUY;
         }
         if(OrderOpenPrice()-lossPoint>Bid){    //止损
-            printf("========");
             return CLOSE_BUY;
         }
     }
