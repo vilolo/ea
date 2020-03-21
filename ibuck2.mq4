@@ -259,10 +259,17 @@ void drawMyTrendLine(int i){
                 tempIndex = tempMinIndex;
             }
 
+            printf("============="+tempIndex);
+            printf(tempMaxCount);
+            printf(tempMax);
+            printf(tempMaxIndex);
+            printf(tempMinCount);
+            printf(tempMin);
+            printf(tempMinIndex);
+
             if(point4Price>0){
                 point4Price = tempPrice;
                 point4Position = tempIndex;
-                printf(tempIndex+"77777777777777");
                 break;
             }
 
@@ -276,11 +283,15 @@ void drawMyTrendLine(int i){
                 }else{
                     point4Price = tempPrice;
                     point4Position = tempIndex;
-                    printf(tempIndex+"66666666666666666");
                 }
             }
         }
     }
+
+    // printf(i+"==============");
+    // printf((i+point2Position)+"==============");
+    // printf((i+point3Position)+"==============");
+    // printf((i+point4Position)+"==============");
 
     if(point2Price>0){
         drawTrend(Time[i], curPrice, Time[i+point2Position], point2Price, clrRed);
