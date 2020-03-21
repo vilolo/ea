@@ -121,6 +121,7 @@ void drawMa(int i){
 int tempi;
 bool isFirst = true;
 int kpool = 80;
+bool canTest = true;
 int OnCalculate(const int rates_total,
                 const int prev_calculated,
                 const datetime &time[],
@@ -148,11 +149,15 @@ int OnCalculate(const int rates_total,
         if(type>0){
             switch(type){
                 case OOPEN_BUY:
-                    drawVline(i, clrRed);
+                    //drawVline(i, clrRed);
                     break;
             }
 
-            drawMyTrendLine(i);
+            if(canTest){
+                drawMyTrendLine(i);
+                canTest = false;
+            }
+            
         }
     }
 
@@ -182,6 +187,7 @@ void drawTrend(datetime time1, double price1, datetime time2, double price2, int
     ObjectSetInteger(chart_ID,objName,OBJPROP_TIMEFRAMES,OBJ_PERIOD_H1);
     ObjectSetInteger(chart_ID,objName,OBJPROP_RAY_RIGHT,false); 
     ObjectSetInteger(chart_ID,objName,OBJPROP_COLOR,clr); 
+    ObjectSetInteger(chart_ID,objName,OBJPROP_WIDTH,2); 
 }
 
 void drawMyTrendLine(int i){
@@ -198,7 +204,7 @@ void drawMyTrendLine(int i){
     int point4Position=0;
 
     double kPrice;
-    double curPrice = iMA(Symbol(),0,1,0,MODE_SMA,PRICE_CLOSE,i);
+    double curPrice = iMA(Symbol(),0,1,0,MODE_SMA,PRICE_MEDIAN,i);
 
     //记录最大最小看最大最小，谁先后面轮空多少根
     double compareCount = 6;
@@ -224,7 +230,7 @@ void drawMyTrendLine(int i){
             previousFirmPrice = point3Price;
         }
 
-        kPrice = iMA(Symbol(),0,1,0,MODE_SMA,PRICE_CLOSE,i+pi);
+        kPrice = iMA(Symbol(),0,1,0,MODE_SMA,PRICE_MEDIAN,i+pi);
         if(previousFirmPrice-kPrice>0){  //找最小
             if(tempMin==0 || tempMin>kPrice){
                 tempMin = kPrice;
@@ -253,6 +259,13 @@ void drawMyTrendLine(int i){
                 tempIndex = tempMinIndex;
             }
 
+            if(point4Price>0){
+                point4Price = tempPrice;
+                point4Position = tempIndex;
+                printf(tempIndex+"77777777777777");
+                break;
+            }
+
             if(point2Price == 0){
                 point2Price = tempPrice;
                 point2Position = tempIndex;
@@ -263,17 +276,18 @@ void drawMyTrendLine(int i){
                 }else{
                     point4Price = tempPrice;
                     point4Position = tempIndex;
+                    printf(tempIndex+"66666666666666666");
                 }
             }
         }
     }
 
     if(point2Price>0){
-        drawTrend(Time[i], curPrice, Time[i+point2Position], point2Price);
+        drawTrend(Time[i], curPrice, Time[i+point2Position], point2Price, clrRed);
         if(point3Price>0){
-            drawTrend(Time[i+point2Position], point2Price, Time[i+point3Position], point3Price);
+            drawTrend(Time[i+point2Position], point2Price, Time[i+point3Position], point3Price, clrLimeGreen);
             if(point4Price>0){
-                drawTrend(Time[i+point3Position], point3Price, Time[i+point4Position], point4Price);
+                drawTrend(Time[i+point3Position], point3Price, Time[i+point4Position], point4Price, clrBlue);
             }
         }
     }

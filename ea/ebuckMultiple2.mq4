@@ -12,7 +12,7 @@ int   isMultiple=1;
 #define CLOSE_BUY 11
 #define CLOSE_SELL 12
 
-input int      ma2=13;
+int      ma2=16;
 
 void OnTick()
 {
@@ -97,10 +97,11 @@ void OnTick()
     }
 }
 
-int profitPoint = 9; 
-int lossPoint = 9;
+input int profitPoint = 20; 
+input int lossPoint = 10;
 int stopStrategy(){
     int type = 0;
+
     if(OrderType() == OP_BUY){
         if(OrderOpenPrice()+profitPoint<Ask){    //止盈
             type = CLOSE_BUY;
