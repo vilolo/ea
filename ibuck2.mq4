@@ -149,14 +149,14 @@ int OnCalculate(const int rates_total,
         if(type>0){
             switch(type){
                 case OOPEN_BUY:
-                    //drawVline(i, clrRed);
+                    drawVline(i, clrRed);
                     break;
             }
 
-            if(canTest){
-                drawMyTrendLine(i);
-                canTest = false;
-            }
+            
+          drawMyTrendLine(i);
+          canTest = false;
+            
             
         }
     }
@@ -191,6 +191,62 @@ void drawTrend(datetime time1, double price1, datetime time2, double price2, int
 }
 
 void drawMyTrendLine(int i){
+   double point2Price = 0;
+   int point2Index;
+   double point3Price = 0;
+   int point3Index;
+   double point4Price = 0;
+   int point4Index;
+   
+   double curPrice = iMA(Symbol(),0,1,0,MODE_SMA,PRICE_MEDIAN,i+1);
+   bool isFindMin = iMA(Symbol(),0,1,0,MODE_SMA,PRICE_MEDIAN,i+2)<curPrice;
+
+   for(int pi=2;pi<kpool;pi++){
+      double temp0Price = iMA(Symbol(),0,1,0,MODE_SMA,PRICE_MEDIAN,i+pi-1);
+      double temp1Price = iMA(Symbol(),0,1,0,MODE_SMA,PRICE_MEDIAN,i+pi);
+      double temp2Price = iMA(Symbol(),0,1,0,MODE_SMA,PRICE_MEDIAN,i+pi+1);
+        
+      if((temp2Price>temp1Price == isFindMin) && (temp1Price>temp0Price != isFindMin)){
+         bool isTarget = true;
+         for(int j=0;j<6;j++){
+            if(iMA(Symbol(),0,1,0,MODE_SMA,PRICE_MEDIAN,i+pi+2+j)>temp1Price != temp2Price>temp1Price){
+               isTarget = false;
+               break;
+            }
+         }
+         if(isTarget){
+            isFindMin = !isFindMin;
+            if(point2Price == 0){
+               point2Price = temp1Price;
+               point2Index = pi;
+            }else if(point3Price == 0){
+               point3Price = temp1Price;
+               point3Index = pi;
+            }else if(point4Price == 0){
+               point4Price = temp1Price;
+               point4Index = pi;
+               break;
+            }
+         }
+      }
+   }
+   
+   if(point2Price>0){
+        drawTrend(Time[i+1], curPrice, Time[i+point2Index], point2Price, clrRed);
+        if(point3Price>0){
+            drawTrend(Time[i+point2Index], point2Price, Time[i+point3Index], point3Price, clrLimeGreen);
+            if(point4Price>0){
+                drawTrend(Time[i+point3Index], point3Price, Time[i+point4Index], point4Price, clrBlue);
+            }
+        }
+    }
+
+    if(point4Price>point2Price){
+        //drawText(i, "xxx");
+    }
+}
+
+void drawMyTrendLine_old(int i){
     //确定前期情况，鱼尾巴甩动一样感知，向前找转折点，与当前点相减正负不一致并且大于10的点算个转折点，4点3条折线
     //当前点过来的第二个点是不是比较特殊，不一定与当前点差很远
     double point2Price=0;
@@ -202,6 +258,8 @@ void drawMyTrendLine(int i){
     double point4Price=0;
     double point4Gap=0;
     int point4Position=0;
+
+    i++; //前一根开始
 
     double kPrice;
     double curPrice = iMA(Symbol(),0,1,0,MODE_SMA,PRICE_MEDIAN,i);
@@ -217,7 +275,7 @@ void drawMyTrendLine(int i){
     double tempPrice;
     int tempIndex;
     double previousFirmPrice;   //上一个确定的价格
-
+    bool findMax = iMA(Symbol(),0,1,0,MODE_SMA,PRICE_MEDIAN,i+1)>curPrice;
     for(int pi=1;pi<kpool;pi++){
         tempMaxCount++;
         tempMinCount++;
@@ -246,20 +304,28 @@ void drawMyTrendLine(int i){
         }
 
         if(
-            (tempMaxCount>compareCount || tempMinCount>compareCount) &&
+            ( (findMax && tempMaxCount>compareCount) || (!findMax && tempMinCount>compareCount) ) &&
             (tempMax>0 && tempMin>0)
         ){
-            if(tempMaxCount>compareCount){
+            if(findMax){ //向上找，反而是为了确定最低点
                 tempMaxCount = 0;
                 tempPrice = tempMax;
                 tempIndex = tempMaxIndex;
+                
+                tempMax = 0;
+                tempMaxCount = 0;
             }else{
                 tempMinCount = 0;
                 tempPrice = tempMin;
                 tempIndex = tempMinIndex;
+                
+                tempMin = 0;
+                tempMinCount = 0;
             }
+            
+            findMax = !findMax;
 
-            printf("============="+tempIndex);
+            printf(pi+"============="+tempIndex);
             printf(tempMaxCount);
             printf(tempMax);
             printf(tempMaxIndex);
@@ -335,7 +401,7 @@ int buyOpen(int i){
     ){
         type = OOPEN_BUY;
         
-        string text = "";
+        string text = "1";
         
         //ma1 不能加速向下
         // if(
@@ -344,7 +410,7 @@ int buyOpen(int i){
         //     StringAdd(text, "1,");
         // }
         
-        drawText(i, text);
+        //drawText(i, text);
     }
 
     return type;
