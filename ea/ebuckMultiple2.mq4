@@ -5,14 +5,14 @@
 
 #define MAGICMA  20200321
 const double Lots = 0.01;
-int   isMultiple=1;
+int   maxOrder=3;
 
 #define OOPEN_BUY 1
 #define OOPEN_SELL 2
 #define CLOSE_BUY 11
 #define CLOSE_SELL 12
 
-int      ma2=16;
+int ma2=16;
 
 void OnTick()
 {
@@ -69,29 +69,26 @@ void OnTick()
         }
     }
 
-    if(!isOpenThisK && (isMultiple == 1 || ordersTotal == 0)){
-        if(openType>0){
-            
-            if(openType == OOPEN_BUY){
-                //todo open buy
-                ticket=OrderSend(Symbol(),OP_BUY,Lots,Ask,3,0,0, ttag, MAGICMA,0,Red);
-                if(ticket>0)
-                {
-                    if(OrderSelect(ticket,SELECT_BY_TICKET,MODE_TRADES))
-                    Print("BUY order opened : ",OrderOpenPrice());
-                }else{
-                    Print("Error opening BUY order : ",GetLastError());
-                }
+    if(!isOpenThisK && ordersTotal<maxOrder && openType>0){
+        if(openType == OOPEN_BUY){
+            //todo open buy
+            ticket=OrderSend(Symbol(),OP_BUY,Lots,Ask,3,0,0, ttag, MAGICMA,0,Red);
+            if(ticket>0)
+            {
+                if(OrderSelect(ticket,SELECT_BY_TICKET,MODE_TRADES))
+                Print("BUY order opened : ",OrderOpenPrice());
             }else{
-                //todo open sell
-                ticket=OrderSend(Symbol(),OP_SELL,Lots,Bid,3,0,0, ttag, MAGICMA,0,Lime);
-                if(ticket>0)
-                {
-                    if(OrderSelect(ticket,SELECT_BY_TICKET,MODE_TRADES))
-                    Print("SELL order opened : ",OrderOpenPrice());
-                }else{
-                    Print("Error opening SELL order : ",GetLastError());
-                }
+                Print("Error opening BUY order : ",GetLastError());
+            }
+        }else{
+            //todo open sell
+            ticket=OrderSend(Symbol(),OP_SELL,Lots,Bid,3,0,0, ttag, MAGICMA,0,Lime);
+            if(ticket>0)
+            {
+                if(OrderSelect(ticket,SELECT_BY_TICKET,MODE_TRADES))
+                Print("SELL order opened : ",OrderOpenPrice());
+            }else{
+                Print("Error opening SELL order : ",GetLastError());
             }
         }
     }
@@ -129,11 +126,14 @@ int openStrategy(int i=0){
     double pre3Ma2 = iMA(Symbol(),0,ma2,0,MODE_SMA,PRICE_CLOSE,i+3);
 
     if(
-        pre1Ma2<Close[i+1]
-        && pre2Ma2>Close[i+2]
-        && pre3Ma2>Close[i+3]
+        pre1Ma2<Close[i+1] != pre2Ma2<Close[i+2]
+        && pre2Ma2<Close[i+2] == pre3Ma2<Close[i+3]
     ){
-        type = OOPEN_BUY;
+        if(pre1Ma2<Close[i+1]){
+            type = OOPEN_BUY;
+        }else{
+            //type = OOPEN_SELL;
+        }
     }
 
     return type;
