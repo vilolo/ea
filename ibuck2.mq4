@@ -226,7 +226,7 @@ void drawMyTrendLine(int i){
                 }
             }
         }
-   }
+    }
    
    if(point2Price>0){
         drawTrend(Time[i+1], curPrice, Time[i+point2Index], point2Price, clrRed);

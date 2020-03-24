@@ -12,7 +12,7 @@ int   maxOrder=3;
 #define CLOSE_BUY 11
 #define CLOSE_SELL 12
 
-int ma2=16;
+input int ma2=16;
 
 void OnTick()
 {
@@ -33,7 +33,8 @@ void OnTick()
     int closeType=0;
 
     openType = openStrategy();
-
+    
+    int closeOrdersTotal = 0;
     int ordersTotal = OrdersTotal();
     if(ordersTotal>0){
         for(int cnt=0;cnt<ordersTotal;cnt++){
@@ -48,6 +49,8 @@ void OnTick()
                     //todo close buy
                     if(!OrderClose(OrderTicket(),OrderLots(),Bid,3,Violet)){
                         Print("OrderClose buy error ",GetLastError());
+                    }else{
+                        closeOrdersTotal++;
                     }
                     continue;
                 }
@@ -58,6 +61,8 @@ void OnTick()
                     //todo close sell
                     if(!OrderClose(OrderTicket(),OrderLots(),Ask,3,Violet)){
                         Print("OrderClose sell error ",GetLastError());
+                    }else{
+                        closeOrdersTotal++;
                     }
                     continue;
                 }
@@ -69,7 +74,7 @@ void OnTick()
         }
     }
 
-    if(!isOpenThisK && ordersTotal<maxOrder && openType>0){
+    if(!isOpenThisK && ordersTotal-closeOrdersTotal<maxOrder && openType>0){
         if(openType == OOPEN_BUY){
             //todo open buy
             ticket=OrderSend(Symbol(),OP_BUY,Lots,Ask,3,0,0, ttag, MAGICMA,0,Red);
@@ -94,8 +99,8 @@ void OnTick()
     }
 }
 
-input int profitPoint = 20; 
-input int lossPoint = 10;
+int profitPoint = 10;
+int lossPoint = 10;
 int stopStrategy(){
     int type = 0;
 
@@ -118,7 +123,7 @@ int stopStrategy(){
     return type;
 }
 
-int openStrategy(int i=0){
+int openStrategy1(int i=0){
     int type = 0;
 
     double pre1Ma2 = iMA(Symbol(),0,ma2,0,MODE_SMA,PRICE_CLOSE,i+1);
@@ -132,7 +137,77 @@ int openStrategy(int i=0){
         if(pre1Ma2<Close[i+1]){
             type = OOPEN_BUY;
         }else{
-            //type = OOPEN_SELL;
+            type = OOPEN_SELL;
+        }
+    }
+
+    return type;
+}
+
+int kpool = 80;
+int openStrategy(int i=0){
+    int type = 0;
+
+    double pre1Ma2 = iMA(Symbol(),0,ma2,0,MODE_SMA,PRICE_CLOSE,i+1);
+    double pre2Ma2 = iMA(Symbol(),0,ma2,0,MODE_SMA,PRICE_CLOSE,i+2);
+    double pre3Ma2 = iMA(Symbol(),0,ma2,0,MODE_SMA,PRICE_CLOSE,i+3);
+    double pre4Ma2 = iMA(Symbol(),0,ma2,0,MODE_SMA,PRICE_CLOSE,i+4);
+
+    if(pre1Ma2<Close[i+1] != pre2Ma2<Close[i+2]
+        && pre2Ma2<Close[i+2] == pre3Ma2<Close[i+3])
+    {
+        double point2Price = 0;
+        int point2Index;
+        double point3Price = 0;
+        int point3Index;
+        double point4Price = 0;
+        int point4Index;
+    
+        double curPrice = iMA(Symbol(),0,1,0,MODE_SMA,PRICE_MEDIAN,i+1);
+        bool isFindMin = iMA(Symbol(),0,1,0,MODE_SMA,PRICE_MEDIAN,i+2)<curPrice;
+
+        for(int pi=2;pi<kpool;pi++){
+            double temp0Price = iMA(Symbol(),0,1,0,MODE_SMA,PRICE_MEDIAN,i+pi-1);
+            double temp1Price = iMA(Symbol(),0,1,0,MODE_SMA,PRICE_MEDIAN,i+pi);
+            double temp2Price = iMA(Symbol(),0,1,0,MODE_SMA,PRICE_MEDIAN,i+pi+1);
+            
+            if((temp2Price>temp1Price == isFindMin) && (temp1Price>temp0Price != isFindMin)){
+                bool isTarget = true;
+                for(int j=0;j<6;j++){
+                    if(iMA(Symbol(),0,1,0,MODE_SMA,PRICE_MEDIAN,i+pi+2+j)>temp1Price != temp2Price>temp1Price){
+                        isTarget = false;
+                        break;
+                    }
+                }
+                if(isTarget){
+                    isFindMin = !isFindMin;
+                    if(point2Price == 0){
+                        point2Price = temp1Price;
+                        point2Index = pi;
+                    }else if(point3Price == 0){
+                        point3Price = temp1Price;
+                        point3Index = pi;
+                    }else if(point4Price == 0){
+                        point4Price = temp1Price;
+                        point4Index = pi;
+                        break;
+                    }
+                }
+            }
+        }
+
+        if(point2Price<curPrice){
+            type = OOPEN_BUY;
+        }else{
+            type = OOPEN_SELL;
+        }
+
+        //过滤条件
+        if(
+            point2Index > 4
+            || curPrice>point2Price != point2Price>point4Price
+        ){
+            //type = 0;
         }
     }
 
