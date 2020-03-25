@@ -133,6 +133,7 @@ int OnCalculate(const int rates_total,
                 const long &volume[],
                 const int &spread[])
 {
+    if(Period() != 60) return rates_total;
     ObjectSet(objNameReferenceUp,1,close[0]+5);
     ObjectSet(objNameReferenceDown,1,close[0]-5);
 
@@ -153,7 +154,7 @@ int OnCalculate(const int rates_total,
                     break;
             }
 
-          drawTrendLine(i, ma2);
+            drawTrendLine(i, ma2);
         }
     }
 
@@ -278,12 +279,18 @@ int sellOpen(int i){
 int openStrategy(int i){
     int type = 0;
 
-    double pre1Ma2 = iMA(Symbol(),0,ma2,0,MODE_SMA,PRICE_CLOSE,i+1);
-    double pre2Ma2 = iMA(Symbol(),0,ma2,0,MODE_SMA,PRICE_CLOSE,i+2);
-    double pre3Ma2 = iMA(Symbol(),0,ma2,0,MODE_SMA,PRICE_CLOSE,i+3);
+    double pre1Ma1 = iMA(Symbol(),0,ma1,0,MODE_SMA,PRICE_CLOSE,i+1);
+    double pre2Ma1 = iMA(Symbol(),0,ma1,0,MODE_SMA,PRICE_CLOSE,i+2);
+    double pre3Ma1 = iMA(Symbol(),0,ma1,0,MODE_SMA,PRICE_CLOSE,i+3);
 
-    if(pre1Ma2>pre2Ma2 != pre2Ma2>pre3Ma2){
-        if(pre1Ma2>pre2Ma2){    //up
+    double pre1Ma3 = iMA(Symbol(),0,ma3,0,MODE_SMA,PRICE_CLOSE,i+1);
+    double pre2Ma3 = iMA(Symbol(),0,ma3,0,MODE_SMA,PRICE_CLOSE,i+2);
+    double pre3Ma3 = iMA(Symbol(),0,ma3,0,MODE_SMA,PRICE_CLOSE,i+3);
+
+    if(
+        pre1Ma1>pre1Ma3 != pre2Ma1>pre2Ma3
+    ){
+        if(pre1Ma1>pre1Ma3){    //up
             type = OOPEN_BUY;
         }else{  //down
             type = OOPEN_SELL;
