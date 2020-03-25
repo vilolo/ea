@@ -153,8 +153,7 @@ int OnCalculate(const int rates_total,
                     break;
             }
 
-            
-          drawMyTrendLine(i);
+          drawTrendLine(i, ma2);
         }
     }
 
@@ -187,7 +186,7 @@ void drawTrend(datetime time1, double price1, datetime time2, double price2, int
     ObjectSetInteger(chart_ID,objName,OBJPROP_WIDTH,2); 
 }
 
-void drawMyTrendLine(int i){
+void drawTrendLine(int i, int ma){
     double point2Price = 0;
     int point2Index;
     double point3Price = 0;
@@ -195,18 +194,18 @@ void drawMyTrendLine(int i){
     double point4Price = 0;
     int point4Index;
    
-    double curPrice = iMA(Symbol(),0,1,0,MODE_SMA,PRICE_MEDIAN,i+1);
-    bool isFindMin = iMA(Symbol(),0,1,0,MODE_SMA,PRICE_MEDIAN,i+2)<curPrice;
+    double curPrice = iMA(Symbol(),0,ma,0,MODE_SMA,PRICE_MEDIAN,i+1);
+    bool isFindMin = iMA(Symbol(),0,ma,0,MODE_SMA,PRICE_MEDIAN,i+2)<curPrice;
 
     for(int pi=2;pi<kpool;pi++){
-        double temp0Price = iMA(Symbol(),0,1,0,MODE_SMA,PRICE_MEDIAN,i+pi-1);
-        double temp1Price = iMA(Symbol(),0,1,0,MODE_SMA,PRICE_MEDIAN,i+pi);
-        double temp2Price = iMA(Symbol(),0,1,0,MODE_SMA,PRICE_MEDIAN,i+pi+1);
+        double temp0Price = iMA(Symbol(),0,ma,0,MODE_SMA,PRICE_MEDIAN,i+pi-1);
+        double temp1Price = iMA(Symbol(),0,ma,0,MODE_SMA,PRICE_MEDIAN,i+pi);
+        double temp2Price = iMA(Symbol(),0,ma,0,MODE_SMA,PRICE_MEDIAN,i+pi+1);
         
         if((temp2Price>temp1Price == isFindMin) && (temp1Price>temp0Price != isFindMin)){
             bool isTarget = true;
             for(int j=0;j<6;j++){
-                if(iMA(Symbol(),0,1,0,MODE_SMA,PRICE_MEDIAN,i+pi+2+j)>temp1Price != temp2Price>temp1Price){
+                if(iMA(Symbol(),0,ma,0,MODE_SMA,PRICE_MEDIAN,i+pi+2+j)>temp1Price != temp2Price>temp1Price){
                     isTarget = false;
                     break;
                 }
@@ -237,15 +236,11 @@ void drawMyTrendLine(int i){
             }
         }
     }
-
-    if(point4Price>point2Price){
-        //drawText(i, "xxx");
-    }
 }
 
-//=========== strategy =================
+//=========== strategy 1 =================
 
-int openStrategy(int i){
+int openStrategy1(int i){
     int type = 0;
 
     type = buyOpen(i);
@@ -279,3 +274,21 @@ int sellOpen(int i){
     return type;
 }
 
+//=========== strategy 2 =================
+int openStrategy(int i){
+    int type = 0;
+
+    double pre1Ma2 = iMA(Symbol(),0,ma2,0,MODE_SMA,PRICE_CLOSE,i+1);
+    double pre2Ma2 = iMA(Symbol(),0,ma2,0,MODE_SMA,PRICE_CLOSE,i+2);
+    double pre3Ma2 = iMA(Symbol(),0,ma2,0,MODE_SMA,PRICE_CLOSE,i+3);
+
+    if(pre1Ma2>pre2Ma2 != pre2Ma2>pre3Ma2){
+        if(pre1Ma2>pre2Ma2){    //up
+            type = OOPEN_BUY;
+        }else{  //down
+            type = OOPEN_SELL;
+        }
+    }
+
+    return type;
+}
