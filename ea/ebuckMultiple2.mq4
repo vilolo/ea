@@ -12,7 +12,9 @@ int   maxOrder=3;
 #define CLOSE_BUY 11
 #define CLOSE_SELL 12
 
+input int ma1=8;
 input int ma2=16;
+input int ma3=28;
 
 void OnTick()
 {
@@ -106,14 +108,14 @@ int stopStrategy(){
 
     if(OrderType() == OP_BUY){
         if(OrderOpenPrice()+profitPoint<Ask){    //止盈
-            type = CLOSE_BUY;
+            //type = CLOSE_BUY;
         }
         if(OrderOpenPrice()-lossPoint>Bid){    //止损
             type = CLOSE_BUY;
         }
     }else if(OrderType() == OP_SELL){
         if(OrderOpenPrice()-profitPoint>Bid){    //止盈
-            type = CLOSE_SELL;
+            //type = CLOSE_SELL;
         }
         if(OrderOpenPrice()+lossPoint<Ask){    //止损
             type = CLOSE_SELL;
@@ -214,7 +216,7 @@ int openStrategy2(int i=0){
     return type;
 }
 
-int openStrategy(int i=0){
+int openStrategy3(int i=0){
     int type = 0;
 
     //type = openPoint1(i);
@@ -314,13 +316,92 @@ int openPoint2(int i){
 int closeStrategy(int openType){
     int type = 0;
 
-    // if(openType == OOPEN_BUY){
-    //     type = CLOSE_SELL;
-    // }
+    if(openType == OOPEN_BUY){
+        type = CLOSE_SELL;
+    }
 
-    // if(openType == OOPEN_SELL){
-    //     type = CLOSE_BUY;
-    // }
+    if(openType == OOPEN_SELL){
+        type = CLOSE_BUY;
+    }
+
+    return type;
+}
+
+//================ ==================
+int maPeriod = 5;   //前N周期内1未叉2
+double maMaxDiff = 4;
+double num_array[3];
+int openStrategy(int i=0){
+    int type = 0;
+
+    //判断是波浪的延续还是风平浪静的启动,...好像直接判断两种情况是否符合更合理
+
+    double pre1Ma1 = iMA(Symbol(),0,ma1,0,MODE_SMA,PRICE_CLOSE,i+1);
+    double pre1Ma2 = iMA(Symbol(),0,ma2,0,MODE_SMA,PRICE_CLOSE,i+1);
+    double pre1Ma3 = iMA(Symbol(),0,ma3,0,MODE_SMA,PRICE_CLOSE,i+1);
+
+    double pre2Ma1 = iMA(Symbol(),0,ma1,0,MODE_SMA,PRICE_CLOSE,i+2);
+    double pre2Ma2 = iMA(Symbol(),0,ma2,0,MODE_SMA,PRICE_CLOSE,i+2);
+    double pre2Ma3 = iMA(Symbol(),0,ma3,0,MODE_SMA,PRICE_CLOSE,i+2);
+
+    double pre3Ma2 = iMA(Symbol(),0,ma2,0,MODE_SMA,PRICE_CLOSE,i+3);
+
+    num_array[0] = pre1Ma1;
+    num_array[1] = pre1Ma2;
+    num_array[2] = pre1Ma3;
+    double tempMax1 = num_array[ArrayMaximum(num_array)];
+    double tempMin1 = num_array[ArrayMinimum(num_array)];
+
+    num_array[0] = pre2Ma1;
+    num_array[1] = pre2Ma2;
+    num_array[2] = pre2Ma3;
+    double tempMax2 = num_array[ArrayMaximum(num_array)];
+    double tempMin2 = num_array[ArrayMinimum(num_array)];
+
+    //风平浪静的启动
+    if(
+        ((Close[i+1]>tempMax1 && Close[i+2]<tempMax2) || (Close[i+1]<tempMin1 && Close[i+2]>tempMin2))
+        && tempMax1-tempMin1 < maMaxDiff
+    ){
+        if(Close[i+1]>pre1Ma1){
+            type = OOPEN_BUY;
+        }else{
+            type = OOPEN_SELL;
+        }
+    }
+
+    //波浪的延续，有波浪的需要
+    if(
+        type == 0
+        && pre1Ma1>pre1Ma2 == pre1Ma2>pre1Ma3  //正序
+        && (    //ma2 k 穿过
+            pre1Ma1>pre1Ma2 == Close[i+1]<pre1Ma2
+            && (Close[i+1]>pre1Ma2 != Close[i+2]>pre2Ma2)
+            && (Close[i+2]>pre2Ma2 == Close[i+3]>pre3Ma2)
+        )
+    ){
+        if(pre1Ma1>pre1Ma2){
+            type = OOPEN_SELL;
+        }else{
+            type = OOPEN_BUY;
+        }
+
+        //==== loop ====
+        //前N周期内1未叉2
+        bool isPass = true;
+        for(int pi=2;pi<maPeriod;pi++){
+            if(
+                pre1Ma1>pre1Ma2 != iMA(Symbol(),0,ma1,0,MODE_SMA,PRICE_CLOSE,i+pi)>iMA(Symbol(),0,ma2,0,MODE_SMA,PRICE_CLOSE,i+pi)
+            ){
+                isPass = false;
+                break;
+            }
+        }
+
+        if(!isPass){
+            type = 0;
+        }
+    }
 
     return type;
 }

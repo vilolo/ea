@@ -240,7 +240,6 @@ void drawTrendLine(int i, int ma){
 }
 
 //=========== strategy 1 =================
-
 int openStrategy1(int i){
     int type = 0;
 
@@ -276,7 +275,7 @@ int sellOpen(int i){
 }
 
 //=========== strategy 2 =================
-int openStrategy(int i){
+int openStrategy2(int i){
     int type = 0;
 
     double pre1Ma1 = iMA(Symbol(),0,ma1,0,MODE_SMA,PRICE_CLOSE,i+1);
@@ -294,6 +293,91 @@ int openStrategy(int i){
             type = OOPEN_BUY;
         }else{  //down
             type = OOPEN_SELL;
+        }
+    }
+
+    return type;
+}
+
+//=========== strategy 3 =================
+//调整情况：正序（保证健康），k001ma2（简单质变），找前一低点（保证有调整需求），找力度
+//风平浪静准备启动情况 
+//上一个ma12叉周期，上一个k100ma2与现在的差
+
+//发现风平浪静启动或行情确定的启动情况比较形态一致
+
+int maPeriod = 5;   //前N周期内1未叉2
+double maMaxDiff = 4;
+double num_array[3];
+int openStrategy(int i=0){
+    int type = 0;
+
+    //判断是波浪的延续还是风平浪静的启动,...好像直接判断两种情况是否符合更合理
+
+    double pre1Ma1 = iMA(Symbol(),0,ma1,0,MODE_SMA,PRICE_CLOSE,i+1);
+    double pre1Ma2 = iMA(Symbol(),0,ma2,0,MODE_SMA,PRICE_CLOSE,i+1);
+    double pre1Ma3 = iMA(Symbol(),0,ma3,0,MODE_SMA,PRICE_CLOSE,i+1);
+
+    double pre2Ma1 = iMA(Symbol(),0,ma1,0,MODE_SMA,PRICE_CLOSE,i+2);
+    double pre2Ma2 = iMA(Symbol(),0,ma2,0,MODE_SMA,PRICE_CLOSE,i+2);
+    double pre2Ma3 = iMA(Symbol(),0,ma3,0,MODE_SMA,PRICE_CLOSE,i+2);
+
+    double pre3Ma2 = iMA(Symbol(),0,ma2,0,MODE_SMA,PRICE_CLOSE,i+3);
+
+    num_array[0] = pre1Ma1;
+    num_array[1] = pre1Ma2;
+    num_array[2] = pre1Ma3;
+    double tempMax1 = num_array[ArrayMaximum(num_array)];
+    double tempMin1 = num_array[ArrayMinimum(num_array)];
+
+    num_array[0] = pre2Ma1;
+    num_array[1] = pre2Ma2;
+    num_array[2] = pre2Ma3;
+    double tempMax2 = num_array[ArrayMaximum(num_array)];
+    double tempMin2 = num_array[ArrayMinimum(num_array)];
+
+    //风平浪静的启动
+    if(
+        ((Close[i+1]>tempMax1 && Close[i+2]<tempMax2) || (Close[i+1]<tempMin1 && Close[i+2]>tempMin2))
+        && tempMax1-tempMin1 < maMaxDiff
+    ){
+        if(Close[i+1]>pre1Ma1){
+            type = OOPEN_BUY;
+        }else{
+            type = OOPEN_SELL;
+        }
+    }
+
+    //波浪的延续，有波浪的需要
+    if(
+        type == 0
+        && pre1Ma1>pre1Ma2 == pre1Ma2>pre1Ma3  //正序
+        && (    //ma2 k 穿过
+            pre1Ma1>pre1Ma2 == Close[i+1]<pre1Ma2
+            && (Close[i+1]>pre1Ma2 != Close[i+2]>pre2Ma2)
+            && (Close[i+2]>pre2Ma2 == Close[i+3]>pre3Ma2)
+        )
+    ){
+        if(pre1Ma1>pre1Ma2){
+            type = OOPEN_SELL;
+        }else{
+            type = OOPEN_BUY;
+        }
+
+        //==== loop ====
+        //前N周期内1未叉2
+        bool isPass = true;
+        for(int pi=2;pi<maPeriod;pi++){
+            if(
+                pre1Ma1>pre1Ma2 != iMA(Symbol(),0,ma1,0,MODE_SMA,PRICE_CLOSE,i+pi)>iMA(Symbol(),0,ma2,0,MODE_SMA,PRICE_CLOSE,i+pi)
+            ){
+                isPass = false;
+                break;
+            }
+        }
+
+        if(!isPass){
+            type = 0;
         }
     }
 
