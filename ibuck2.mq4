@@ -152,9 +152,12 @@ int OnCalculate(const int rates_total,
                 case OOPEN_BUY:
                     drawVline(i, clrRed);
                     break;
+                case OOPEN_SELL:
+                    drawVline(i, clrLime);
+                    break;
             }
 
-            drawTrendLine(i, ma2);
+            //drawTrendLine(i, ma2);
         }
     }
 
@@ -306,10 +309,10 @@ int openStrategy2(int i){
 
 //发现风平浪静启动或行情确定的启动情况比较形态一致
 
-int maPeriod = 5;   //前N周期内1未叉2
-double maMaxDiff = 4;
+int maPeriod = 8;   //前N周期内1未叉2
+double maMaxDiff = 2;
 double num_array[3];
-int openStrategy(int i=0){
+int openStrategy3(int i=0){
     int type = 0;
 
     //判断是波浪的延续还是风平浪静的启动,...好像直接判断两种情况是否符合更合理
@@ -342,9 +345,9 @@ int openStrategy(int i=0){
         && tempMax1-tempMin1 < maMaxDiff
     ){
         if(Close[i+1]>pre1Ma1){
-            type = OOPEN_BUY;
+            //type = OOPEN_BUY;
         }else{
-            type = OOPEN_SELL;
+            //type = OOPEN_SELL;
         }
     }
 
@@ -366,12 +369,19 @@ int openStrategy(int i=0){
 
         //==== loop ====
         //前N周期内1未叉2
+        //并且2都在3下面
         bool isPass = true;
+        
         for(int pi=2;pi<maPeriod;pi++){
+            double tempMa1 = iMA(Symbol(),0,ma1,0,MODE_SMA,PRICE_CLOSE,i+pi);
+            double tempMa2 = iMA(Symbol(),0,ma2,0,MODE_SMA,PRICE_CLOSE,i+pi);
+            double tempMa3 = iMA(Symbol(),0,ma3,0,MODE_SMA,PRICE_CLOSE,i+pi);
             if(
-                pre1Ma1>pre1Ma2 != iMA(Symbol(),0,ma1,0,MODE_SMA,PRICE_CLOSE,i+pi)>iMA(Symbol(),0,ma2,0,MODE_SMA,PRICE_CLOSE,i+pi)
+                pre1Ma1>pre1Ma2 != tempMa2>tempMa3 ||
+                pre1Ma1>pre1Ma2 != tempMa1>tempMa2 ||
+                pre1Ma1>pre1Ma2 != pre1Ma1>pre1Ma2
             ){
-                isPass = false;
+                //isPass = false;
                 break;
             }
         }
@@ -382,4 +392,94 @@ int openStrategy(int i=0){
     }
 
     return type;
+}
+
+int openStrategy4(int i=0){
+   int type = 0;
+   
+    double pre1Ma1 = iMA(Symbol(),0,ma1,0,MODE_SMA,PRICE_CLOSE,i+1);
+    double pre1Ma2 = iMA(Symbol(),0,ma2,0,MODE_SMA,PRICE_CLOSE,i+1);
+    double pre1Ma3 = iMA(Symbol(),0,ma3,0,MODE_SMA,PRICE_CLOSE,i+1);
+    double pre2Ma1 = iMA(Symbol(),0,ma1,0,MODE_SMA,PRICE_CLOSE,i+2);
+    double pre2Ma2 = iMA(Symbol(),0,ma2,0,MODE_SMA,PRICE_CLOSE,i+2);
+    double pre2Ma3 = iMA(Symbol(),0,ma3,0,MODE_SMA,PRICE_CLOSE,i+2);
+    
+    double pre3Ma2 = iMA(Symbol(),0,ma2,0,MODE_SMA,PRICE_CLOSE,i+3);
+    double pre3Ma3 = iMA(Symbol(),0,ma3,0,MODE_SMA,PRICE_CLOSE,i+3);
+    
+    double pre4Ma3 = iMA(Symbol(),0,ma3,0,MODE_SMA,PRICE_CLOSE,i+4);
+    
+      if((Close[i+1]>pre1Ma3 == Open[i+1]<Close[i+1])){
+         //k0010, 
+         if(
+            (Close[i+1]>pre1Ma3 != Close[i+2]>pre2Ma3)
+            && (Close[i+1]>pre1Ma3 == Close[i+3]>pre3Ma3)
+            && (Close[i+1]>pre1Ma3 == Close[i+4]>pre4Ma3)
+         ){
+            if(Close[i+1]<pre1Ma3){
+               type = OOPEN_SELL;
+            }else{
+               type = OOPEN_BUY;
+            }
+         }
+       
+         //k0011(ma1,2要顺),
+         if(
+            (Close[i+1]>pre1Ma3 == Close[i+2]>pre2Ma3)
+            && (Close[i+1]>pre1Ma3 != Close[i+3]>pre3Ma3)
+            && (Close[i+1]>pre1Ma3 != Close[i+4]>pre4Ma3)
+            && (Close[i+1]>pre1Ma3 == pre1Ma1>pre2Ma1)
+            && (Close[i+1]>pre1Ma3 == pre1Ma2>pre2Ma2)
+         ){
+            if(Close[i+1]<pre1Ma3){
+               type = OOPEN_SELL;
+            }else{
+               type = OOPEN_BUY;
+            }
+         }
+      }
+      
+    
+    //正序，k穿2，close与3有距离
+    if(
+      pre1Ma1>pre1Ma2 == pre1Ma2>pre1Ma3
+      && (    //ma2 k 穿过
+         pre1Ma1>pre1Ma2 == Close[i+1]<pre1Ma2
+         && (Close[i+1]>pre1Ma2 == Close[i+1]<pre1Ma3)
+         && (Close[i+1]>pre1Ma2 != Close[i+2]>pre2Ma2)
+         && (Close[i+2]>pre2Ma2 == Close[i+3]>pre3Ma2)
+     )
+    ){
+      if(pre1Ma1>pre1Ma2){
+         //type = OOPEN_SELL;
+      }else{
+         //type = OOPEN_BUY;
+      }
+    }
+    
+    return type;
+}
+
+int openStrategy(int i=0){
+   int type = 0;
+   
+   double pre1Ma1 = iMA(Symbol(),0,ma1,0,MODE_SMA,PRICE_CLOSE,i+1);
+   double pre1Ma2 = iMA(Symbol(),0,ma2,0,MODE_SMA,PRICE_CLOSE,i+1);
+   double pre1Ma3 = iMA(Symbol(),0,ma3,0,MODE_SMA,PRICE_CLOSE,i+1);
+   double pre2Ma1 = iMA(Symbol(),0,ma1,0,MODE_SMA,PRICE_CLOSE,i+2);
+   double pre2Ma2 = iMA(Symbol(),0,ma2,0,MODE_SMA,PRICE_CLOSE,i+2);
+   double pre2Ma3 = iMA(Symbol(),0,ma3,0,MODE_SMA,PRICE_CLOSE,i+2);
+   
+   //1叉3
+   if(
+      pre1Ma1>pre1Ma3 != pre2Ma1>pre2Ma3
+   ){
+      if(pre1Ma1<pre1Ma3){
+         type = OOPEN_SELL;
+      }else{
+         type = OOPEN_BUY;
+      }
+   }
+     
+   return type;
 }
