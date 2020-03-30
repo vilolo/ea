@@ -463,23 +463,34 @@ int openStrategy4(int i=0){
 int openStrategy(int i=0){
    int type = 0;
    
-   double pre1Ma1 = iMA(Symbol(),0,ma1,0,MODE_SMA,PRICE_CLOSE,i+1);
-   double pre1Ma2 = iMA(Symbol(),0,ma2,0,MODE_SMA,PRICE_CLOSE,i+1);
-   double pre1Ma3 = iMA(Symbol(),0,ma3,0,MODE_SMA,PRICE_CLOSE,i+1);
-   double pre2Ma1 = iMA(Symbol(),0,ma1,0,MODE_SMA,PRICE_CLOSE,i+2);
-   double pre2Ma2 = iMA(Symbol(),0,ma2,0,MODE_SMA,PRICE_CLOSE,i+2);
-   double pre2Ma3 = iMA(Symbol(),0,ma3,0,MODE_SMA,PRICE_CLOSE,i+2);
-   
-   //1叉3
-   if(
-      pre1Ma1>pre1Ma3 != pre2Ma1>pre2Ma3
-   ){
-      if(pre1Ma1<pre1Ma3){
-         type = OOPEN_SELL;
-      }else{
-         type = OOPEN_BUY;
-      }
-   }
+   type = openFunSell(i);
      
+   return type;
+}
+
+int aMa1 = 5;
+int aMa2 = 10;
+int aMa3 = 28;
+int openFunSell(int i=0){
+   int type = 0;
+   
+   double pre1Ma1 = iMA(Symbol(),0,aMa1,0,MODE_SMA,PRICE_CLOSE,i+1);
+   double pre1Ma2 = iMA(Symbol(),0,aMa2,0,MODE_SMA,PRICE_CLOSE,i+1);
+   double pre1Ma3 = iMA(Symbol(),0,aMa3,0,MODE_SMA,PRICE_CLOSE,i+1);
+   
+   double pre2Ma1 = iMA(Symbol(),0,aMa1,0,MODE_SMA,PRICE_CLOSE,i+2);
+   double pre2Ma2 = iMA(Symbol(),0,aMa2,0,MODE_SMA,PRICE_CLOSE,i+2);
+   double pre2Ma3 = iMA(Symbol(),0,aMa3,0,MODE_SMA,PRICE_CLOSE,i+2);
+   
+   if(
+      Close[i+1]<pre1Ma2
+      && Close[i+2]>pre2Ma2
+      && pre1Ma2>pre1Ma3
+      //&& (pre1Ma2-pre2Ma2)*5<1
+      && pre2Ma1>pre1Ma1
+   ){
+      type = OOPEN_SELL;
+   }
+   
    return type;
 }
