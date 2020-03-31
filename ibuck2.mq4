@@ -190,15 +190,24 @@ void drawTrend(datetime time1, double price1, datetime time2, double price2, int
     ObjectSetInteger(chart_ID,objName,OBJPROP_WIDTH,2); 
 }
 
+double curPrice = 0;
+double point2Price = 0;
+int point2Index = 0;
+double point3Price = 0;
+int point3Index = 0;
+double point4Price = 0;
+int point4Index = 0;
 void drawTrendLine(int i, int ma){
-    double point2Price = 0;
-    int point2Index;
-    double point3Price = 0;
-    int point3Index;
-    double point4Price = 0;
-    int point4Index;
-   
-    double curPrice = iMA(Symbol(),0,ma,0,MODE_SMA,PRICE_MEDIAN,i+1);
+
+    //double curPrice = 0;
+    //double point2Price = 0;
+    //int point2Index;
+    //double point3Price = 0;
+    //int point3Index;
+    //double point4Price = 0;
+    //int point4Index;
+
+    curPrice = iMA(Symbol(),0,ma,0,MODE_SMA,PRICE_MEDIAN,i+1);
     bool isFindMin = iMA(Symbol(),0,ma,0,MODE_SMA,PRICE_MEDIAN,i+2)<curPrice;
 
     for(int pi=2;pi<kpool;pi++){
@@ -464,6 +473,7 @@ int openStrategy(int i=0){
    int type = 0;
    
    //type = openFunSell(i);
+   type = openFunMa2(i);
      
    return type;
 }
@@ -527,4 +537,56 @@ int openFunMa12(int i=0){
 
 void openFunMa12Verify(int i=0){
 
+}
+
+//=============  ma3K =============
+int cMa1 = 5;
+int cMa2 = 10;
+int cMa3 = 30;
+int openFunMa2(int i=0){
+   int type = 0;
+   
+   double pre1Ma1 = iMA(Symbol(),0,cMa1,0,MODE_SMA,PRICE_CLOSE,i+1);
+   double pre1Ma2 = iMA(Symbol(),0,cMa2,0,MODE_SMA,PRICE_CLOSE,i+1);
+   double pre1Ma3 = iMA(Symbol(),0,cMa3,0,MODE_SMA,PRICE_CLOSE,i+1);
+   double pre2Ma1 = iMA(Symbol(),0,cMa1,0,MODE_SMA,PRICE_CLOSE,i+2);
+   double pre2Ma2 = iMA(Symbol(),0,cMa2,0,MODE_SMA,PRICE_CLOSE,i+2);
+   double pre2Ma3 = iMA(Symbol(),0,cMa3,0,MODE_SMA,PRICE_CLOSE,i+2);
+   
+   if(
+      Close[i+1]>pre1Ma2 != Close[i+2]>pre2Ma2
+      && Close[i+1]>pre1Ma2 == pre1Ma3>pre1Ma2
+      && Close[i+1]>pre1Ma2 == pre1Ma1>pre2Ma1
+
+   ){
+      if(Close[i+1]>pre1Ma2){
+         type = OOPEN_BUY;
+      }else{
+         type = OOPEN_SELL;
+      }
+      
+      if(type == 0){
+         return type;
+      }
+      
+      //看3的波动周期
+      curPrice = 0;
+      point2Price = 0;
+      point2Index = 0;
+      point3Price = 0;
+      point3Index = 0;
+      point4Price = 0;
+      point4Index = 0;
+      drawTrendLine(i, cMa3);
+      
+      if(
+         point2Price == 0
+         || (type == OOPEN_BUY && curPrice>point2Price)
+         || (type == OOPEN_SELL && curPrice<point2Price)
+      ){
+         type = 0;
+      }
+   }
+   
+   return type;
 }
