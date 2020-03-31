@@ -463,7 +463,7 @@ int openStrategy4(int i=0){
 int openStrategy(int i=0){
    int type = 0;
    
-   type = openFunSell(i);
+   //type = openFunSell(i);
      
    return type;
 }
@@ -493,4 +493,38 @@ int openFunSell(int i=0){
    }
    
    return type;
+}
+
+//======== 反推 ==========
+int bMa1 = 5;
+int bMa2 = 10;
+int openFunMa12(int i=0){
+    int type = 0;
+
+    double pre1Ma1 = iMA(Symbol(),0,bMa1,0,MODE_SMA,PRICE_CLOSE,i+1);
+    double pre1Ma2 = iMA(Symbol(),0,bMa2,0,MODE_SMA,PRICE_CLOSE,i+1);
+
+    double pre2Ma1 = iMA(Symbol(),0,bMa1,0,MODE_SMA,PRICE_CLOSE,i+2);
+    double pre2Ma2 = iMA(Symbol(),0,bMa2,0,MODE_SMA,PRICE_CLOSE,i+2);
+
+    double diffMa1 = pre1Ma1-pre2Ma1;
+    double diffMa2 = pre1Ma2-pre2Ma2;
+
+    if(
+        pre1Ma1>pre1Ma2 != pre2Ma1>pre2Ma2
+    ){
+        if(pre1Ma1>pre1Ma2){
+            type = OOPEN_BUY;
+        }else{
+            type = OOPEN_SELL;
+        }
+    }
+
+    openFunMa12Verify();
+
+    return type;
+}
+
+void openFunMa12Verify(int i=0){
+
 }
