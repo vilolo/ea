@@ -198,15 +198,6 @@ int point3Index = 0;
 double point4Price = 0;
 int point4Index = 0;
 void drawTrendLine(int i, int ma){
-
-    //double curPrice = 0;
-    //double point2Price = 0;
-    //int point2Index;
-    //double point3Price = 0;
-    //int point3Index;
-    //double point4Price = 0;
-    //int point4Index;
-
     curPrice = iMA(Symbol(),0,ma,0,MODE_SMA,PRICE_MEDIAN,i+1);
     bool isFindMin = iMA(Symbol(),0,ma,0,MODE_SMA,PRICE_MEDIAN,i+2)<curPrice;
 
@@ -251,342 +242,47 @@ void drawTrendLine(int i, int ma){
     }
 }
 
-//=========== strategy 1 =================
-int openStrategy1(int i){
-    int type = 0;
-
-    type = buyOpen(i);
-    type = type!=0?type:sellOpen(i);
-
-    return type;
-}
-
-//参考的是一小撮k线，不是2，3根
-//或者对比与短均线关系
-int buyOpen(int i){
-    int type = 0;
-
-    double pre1Ma2 = iMA(Symbol(),0,ma2,0,MODE_SMA,PRICE_CLOSE,i+1);
-    double pre2Ma2 = iMA(Symbol(),0,ma2,0,MODE_SMA,PRICE_CLOSE,i+2);
-    double pre3Ma2 = iMA(Symbol(),0,ma2,0,MODE_SMA,PRICE_CLOSE,i+3);
-
-    if(
-        pre1Ma2<Close[i+1]
-        && pre2Ma2>Close[i+2]
-        && pre3Ma2>Close[i+3]
-    ){
-        type = OOPEN_BUY;
-    }
-
-    return type;
-}
-
-int sellOpen(int i){
-    int type = 0;
-    return type;
-}
-
-//=========== strategy 2 =================
-int openStrategy2(int i){
-    int type = 0;
-
-    double pre1Ma1 = iMA(Symbol(),0,ma1,0,MODE_SMA,PRICE_CLOSE,i+1);
-    double pre2Ma1 = iMA(Symbol(),0,ma1,0,MODE_SMA,PRICE_CLOSE,i+2);
-    double pre3Ma1 = iMA(Symbol(),0,ma1,0,MODE_SMA,PRICE_CLOSE,i+3);
-
-    double pre1Ma3 = iMA(Symbol(),0,ma3,0,MODE_SMA,PRICE_CLOSE,i+1);
-    double pre2Ma3 = iMA(Symbol(),0,ma3,0,MODE_SMA,PRICE_CLOSE,i+2);
-    double pre3Ma3 = iMA(Symbol(),0,ma3,0,MODE_SMA,PRICE_CLOSE,i+3);
-
-    if(
-        pre1Ma1>pre1Ma3 != pre2Ma1>pre2Ma3
-    ){
-        if(pre1Ma1>pre1Ma3){    //up
-            type = OOPEN_BUY;
-        }else{  //down
-            type = OOPEN_SELL;
-        }
-    }
-
-    return type;
-}
-
-//=========== strategy 3 =================
-//调整情况：正序（保证健康），k001ma2（简单质变），找前一低点（保证有调整需求），找力度
-//风平浪静准备启动情况 
-//上一个ma12叉周期，上一个k100ma2与现在的差
-
-//发现风平浪静启动或行情确定的启动情况比较形态一致
-
-int maPeriod = 8;   //前N周期内1未叉2
-double maMaxDiff = 2;
-double num_array[3];
-int openStrategy3(int i=0){
-    int type = 0;
-
-    //判断是波浪的延续还是风平浪静的启动,...好像直接判断两种情况是否符合更合理
-
-    double pre1Ma1 = iMA(Symbol(),0,ma1,0,MODE_SMA,PRICE_CLOSE,i+1);
-    double pre1Ma2 = iMA(Symbol(),0,ma2,0,MODE_SMA,PRICE_CLOSE,i+1);
-    double pre1Ma3 = iMA(Symbol(),0,ma3,0,MODE_SMA,PRICE_CLOSE,i+1);
-
-    double pre2Ma1 = iMA(Symbol(),0,ma1,0,MODE_SMA,PRICE_CLOSE,i+2);
-    double pre2Ma2 = iMA(Symbol(),0,ma2,0,MODE_SMA,PRICE_CLOSE,i+2);
-    double pre2Ma3 = iMA(Symbol(),0,ma3,0,MODE_SMA,PRICE_CLOSE,i+2);
-
-    double pre3Ma2 = iMA(Symbol(),0,ma2,0,MODE_SMA,PRICE_CLOSE,i+3);
-
-    num_array[0] = pre1Ma1;
-    num_array[1] = pre1Ma2;
-    num_array[2] = pre1Ma3;
-    double tempMax1 = num_array[ArrayMaximum(num_array)];
-    double tempMin1 = num_array[ArrayMinimum(num_array)];
-
-    num_array[0] = pre2Ma1;
-    num_array[1] = pre2Ma2;
-    num_array[2] = pre2Ma3;
-    double tempMax2 = num_array[ArrayMaximum(num_array)];
-    double tempMin2 = num_array[ArrayMinimum(num_array)];
-
-    //风平浪静的启动
-    if(
-        ((Close[i+1]>tempMax1 && Close[i+2]<tempMax2) || (Close[i+1]<tempMin1 && Close[i+2]>tempMin2))
-        && tempMax1-tempMin1 < maMaxDiff
-    ){
-        if(Close[i+1]>pre1Ma1){
-            //type = OOPEN_BUY;
-        }else{
-            //type = OOPEN_SELL;
-        }
-    }
-
-    //波浪的延续，有波浪的需要
-    if(
-        type == 0
-        && pre1Ma1>pre1Ma2 == pre1Ma2>pre1Ma3  //正序
-        && (    //ma2 k 穿过
-            pre1Ma1>pre1Ma2 == Close[i+1]<pre1Ma2
-            && (Close[i+1]>pre1Ma2 != Close[i+2]>pre2Ma2)
-            && (Close[i+2]>pre2Ma2 == Close[i+3]>pre3Ma2)
-        )
-    ){
-        if(pre1Ma1>pre1Ma2){
-            type = OOPEN_SELL;
-        }else{
-            type = OOPEN_BUY;
-        }
-
-        //==== loop ====
-        //前N周期内1未叉2
-        //并且2都在3下面
-        bool isPass = true;
-        
-        for(int pi=2;pi<maPeriod;pi++){
-            double tempMa1 = iMA(Symbol(),0,ma1,0,MODE_SMA,PRICE_CLOSE,i+pi);
-            double tempMa2 = iMA(Symbol(),0,ma2,0,MODE_SMA,PRICE_CLOSE,i+pi);
-            double tempMa3 = iMA(Symbol(),0,ma3,0,MODE_SMA,PRICE_CLOSE,i+pi);
-            if(
-                pre1Ma1>pre1Ma2 != tempMa2>tempMa3 ||
-                pre1Ma1>pre1Ma2 != tempMa1>tempMa2 ||
-                pre1Ma1>pre1Ma2 != pre1Ma1>pre1Ma2
-            ){
-                //isPass = false;
-                break;
-            }
-        }
-
-        if(!isPass){
-            type = 0;
-        }
-    }
-
-    return type;
-}
-
-int openStrategy4(int i=0){
-   int type = 0;
-   
-    double pre1Ma1 = iMA(Symbol(),0,ma1,0,MODE_SMA,PRICE_CLOSE,i+1);
-    double pre1Ma2 = iMA(Symbol(),0,ma2,0,MODE_SMA,PRICE_CLOSE,i+1);
-    double pre1Ma3 = iMA(Symbol(),0,ma3,0,MODE_SMA,PRICE_CLOSE,i+1);
-    double pre2Ma1 = iMA(Symbol(),0,ma1,0,MODE_SMA,PRICE_CLOSE,i+2);
-    double pre2Ma2 = iMA(Symbol(),0,ma2,0,MODE_SMA,PRICE_CLOSE,i+2);
-    double pre2Ma3 = iMA(Symbol(),0,ma3,0,MODE_SMA,PRICE_CLOSE,i+2);
-    
-    double pre3Ma2 = iMA(Symbol(),0,ma2,0,MODE_SMA,PRICE_CLOSE,i+3);
-    double pre3Ma3 = iMA(Symbol(),0,ma3,0,MODE_SMA,PRICE_CLOSE,i+3);
-    
-    double pre4Ma3 = iMA(Symbol(),0,ma3,0,MODE_SMA,PRICE_CLOSE,i+4);
-    
-      if((Close[i+1]>pre1Ma3 == Open[i+1]<Close[i+1])){
-         //k0010, 
-         if(
-            (Close[i+1]>pre1Ma3 != Close[i+2]>pre2Ma3)
-            && (Close[i+1]>pre1Ma3 == Close[i+3]>pre3Ma3)
-            && (Close[i+1]>pre1Ma3 == Close[i+4]>pre4Ma3)
-         ){
-            if(Close[i+1]<pre1Ma3){
-               type = OOPEN_SELL;
-            }else{
-               type = OOPEN_BUY;
-            }
-         }
-       
-         //k0011(ma1,2要顺),
-         if(
-            (Close[i+1]>pre1Ma3 == Close[i+2]>pre2Ma3)
-            && (Close[i+1]>pre1Ma3 != Close[i+3]>pre3Ma3)
-            && (Close[i+1]>pre1Ma3 != Close[i+4]>pre4Ma3)
-            && (Close[i+1]>pre1Ma3 == pre1Ma1>pre2Ma1)
-            && (Close[i+1]>pre1Ma3 == pre1Ma2>pre2Ma2)
-         ){
-            if(Close[i+1]<pre1Ma3){
-               type = OOPEN_SELL;
-            }else{
-               type = OOPEN_BUY;
-            }
-         }
-      }
-      
-    
-    //正序，k穿2，close与3有距离
-    if(
-      pre1Ma1>pre1Ma2 == pre1Ma2>pre1Ma3
-      && (    //ma2 k 穿过
-         pre1Ma1>pre1Ma2 == Close[i+1]<pre1Ma2
-         && (Close[i+1]>pre1Ma2 == Close[i+1]<pre1Ma3)
-         && (Close[i+1]>pre1Ma2 != Close[i+2]>pre2Ma2)
-         && (Close[i+2]>pre2Ma2 == Close[i+3]>pre3Ma2)
-     )
-    ){
-      if(pre1Ma1>pre1Ma2){
-         //type = OOPEN_SELL;
-      }else{
-         //type = OOPEN_BUY;
-      }
-    }
-    
-    return type;
-}
-
+//== mark
+//尝试反推，比如均线搭配，最佳增速，最佳放大口幅度
+//找大趋势，这样才能找到健康的规律
+//认识趋势的特点，波浪的特点，一个阶梯一个阶梯的走
+//动态切断均线周期
+//均线统一和放大
 int openStrategy(int i=0){
    int type = 0;
    
-   //type = openFunSell(i);
-   type = openFunMa2(i);
+   type = openFunMa(i);
      
    return type;
 }
 
+
+//============= Ma  =============
 int aMa1 = 5;
 int aMa2 = 10;
-int aMa3 = 28;
-int openFunSell(int i=0){
-   int type = 0;
-   
-   double pre1Ma1 = iMA(Symbol(),0,aMa1,0,MODE_SMA,PRICE_CLOSE,i+1);
-   double pre1Ma2 = iMA(Symbol(),0,aMa2,0,MODE_SMA,PRICE_CLOSE,i+1);
-   double pre1Ma3 = iMA(Symbol(),0,aMa3,0,MODE_SMA,PRICE_CLOSE,i+1);
-   
-   double pre2Ma1 = iMA(Symbol(),0,aMa1,0,MODE_SMA,PRICE_CLOSE,i+2);
-   double pre2Ma2 = iMA(Symbol(),0,aMa2,0,MODE_SMA,PRICE_CLOSE,i+2);
-   double pre2Ma3 = iMA(Symbol(),0,aMa3,0,MODE_SMA,PRICE_CLOSE,i+2);
-   
-   if(
-      Close[i+1]<pre1Ma2
-      && Close[i+2]>pre2Ma2
-      && pre1Ma2>pre1Ma3
-      //&& (pre1Ma2-pre2Ma2)*5<1
-      && pre2Ma1>pre1Ma1
-   ){
-      type = OOPEN_SELL;
-   }
-   
-   return type;
-}
-
-//======== 反推 ==========
-int bMa1 = 5;
-int bMa2 = 10;
-int openFunMa12(int i=0){
+int aMa3 = 30;
+int aMa4 = 60;
+int openFunMa(int i=0){
     int type = 0;
 
-    double pre1Ma1 = iMA(Symbol(),0,bMa1,0,MODE_SMA,PRICE_CLOSE,i+1);
-    double pre1Ma2 = iMA(Symbol(),0,bMa2,0,MODE_SMA,PRICE_CLOSE,i+1);
-
-    double pre2Ma1 = iMA(Symbol(),0,bMa1,0,MODE_SMA,PRICE_CLOSE,i+2);
-    double pre2Ma2 = iMA(Symbol(),0,bMa2,0,MODE_SMA,PRICE_CLOSE,i+2);
-
-    double diffMa1 = pre1Ma1-pre2Ma1;
-    double diffMa2 = pre1Ma2-pre2Ma2;
+    //定海神针
+    double pre1Ma4 = iMA(Symbol(),0,aMa4,0,MODE_SMA,PRICE_CLOSE,i+1);
+    double pre2Ma4 = iMA(Symbol(),0,aMa4,0,MODE_SMA,PRICE_CLOSE,i+2);
+    double pre3Ma4 = iMA(Symbol(),0,aMa4,0,MODE_SMA,PRICE_CLOSE,i+3);
+    double pre4Ma4 = iMA(Symbol(),0,aMa4,0,MODE_SMA,PRICE_CLOSE,i+4);
+    double pre5Ma4 = iMA(Symbol(),0,aMa4,0,MODE_SMA,PRICE_CLOSE,i+5);
 
     if(
-        pre1Ma1>pre1Ma2 != pre2Ma1>pre2Ma2
+        pre1Ma4>pre2Ma4 == pre2Ma4>pre3Ma4
+        && pre2Ma4>pre3Ma4 != pre3Ma4>pre4Ma4
+        && pre3Ma4>pre4Ma4 == pre4Ma4>pre5Ma4
     ){
-        if(pre1Ma1>pre1Ma2){
+        if(pre1Ma4>pre2Ma4){
             type = OOPEN_BUY;
         }else{
             type = OOPEN_SELL;
         }
     }
 
-    openFunMa12Verify();
-
     return type;
-}
-
-void openFunMa12Verify(int i=0){
-
-}
-
-//=============  ma3K =============
-int cMa1 = 5;
-int cMa2 = 10;
-int cMa3 = 30;
-int openFunMa2(int i=0){
-   int type = 0;
-   
-   double pre1Ma1 = iMA(Symbol(),0,cMa1,0,MODE_SMA,PRICE_CLOSE,i+1);
-   double pre1Ma2 = iMA(Symbol(),0,cMa2,0,MODE_SMA,PRICE_CLOSE,i+1);
-   double pre1Ma3 = iMA(Symbol(),0,cMa3,0,MODE_SMA,PRICE_CLOSE,i+1);
-   double pre2Ma1 = iMA(Symbol(),0,cMa1,0,MODE_SMA,PRICE_CLOSE,i+2);
-   double pre2Ma2 = iMA(Symbol(),0,cMa2,0,MODE_SMA,PRICE_CLOSE,i+2);
-   double pre2Ma3 = iMA(Symbol(),0,cMa3,0,MODE_SMA,PRICE_CLOSE,i+2);
-   
-   if(
-      Close[i+1]>pre1Ma2 != Close[i+2]>pre2Ma2
-      && Close[i+1]>pre1Ma2 == pre1Ma3>pre1Ma2
-      && Close[i+1]>pre1Ma2 == pre1Ma1>pre2Ma1
-
-   ){
-      if(Close[i+1]>pre1Ma2){
-         type = OOPEN_BUY;
-      }else{
-         type = OOPEN_SELL;
-      }
-      
-      if(type == 0){
-         return type;
-      }
-      
-      //看3的波动周期
-      curPrice = 0;
-      point2Price = 0;
-      point2Index = 0;
-      point3Price = 0;
-      point3Index = 0;
-      point4Price = 0;
-      point4Index = 0;
-      drawTrendLine(i, cMa3);
-      
-      if(
-         point2Price == 0
-         || (type == OOPEN_BUY && curPrice>point2Price)
-         || (type == OOPEN_SELL && curPrice<point2Price)
-      ){
-         type = 0;
-      }
-   }
-   
-   return type;
 }
