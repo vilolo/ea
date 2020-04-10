@@ -23,16 +23,24 @@
 #property indicator_color3  clrBlueViolet
 #property indicator_style3  STYLE_SOLID
 #property indicator_width3  2
+//--- plot ma4
+#property indicator_label4  "ma4"
+#property indicator_type4   DRAW_LINE
+#property indicator_color4  clrYellow
+#property indicator_style4  STYLE_SOLID
+#property indicator_width4  1
 
 //--- input parameters
 input int      ma1=5;
-input int      ma2=10;
-input int      ma3=28;
+input int      ma2=16;
+input int      ma3=30;
+input int      ma4=60;
 
 //--- indicator buffers
 double         ma1Buffer[];
 double         ma2Buffer[];
 double         ma3Buffer[];
+double         ma4Buffer[];
 
 const long chart_ID = 0;
 string tips[20];
@@ -49,6 +57,7 @@ int OnInit()
     SetIndexBuffer(0,ma1Buffer);
     SetIndexBuffer(1,ma2Buffer);
     SetIndexBuffer(2,ma3Buffer);
+    SetIndexBuffer(3,ma4Buffer);
 
     long handle=ChartID(); 
     if(handle>0)
@@ -115,6 +124,7 @@ void drawMa(int i){
    ma1Buffer[i] = iMA(Symbol(),0,ma1,0,MODE_SMA,PRICE_CLOSE,i);
    ma2Buffer[i] = iMA(Symbol(),0,ma2,0,MODE_SMA,PRICE_CLOSE,i);
    ma3Buffer[i] = iMA(Symbol(),0,ma3,0,MODE_SMA,PRICE_CLOSE,i);
+   ma4Buffer[i] = iMA(Symbol(),0,ma4,0,MODE_SMA,PRICE_CLOSE,i);
 }
 
 
@@ -242,12 +252,6 @@ void drawTrendLine(int i, int ma){
     }
 }
 
-//== mark
-//尝试反推，比如均线搭配，最佳增速，最佳放大口幅度
-//找大趋势，这样才能找到健康的规律
-//认识趋势的特点，波浪的特点，一个阶梯一个阶梯的走
-//动态切断均线周期
-//均线统一和放大
 int openStrategy(int i=0){
    int type = 0;
    
@@ -258,31 +262,8 @@ int openStrategy(int i=0){
 
 
 //============= Ma  =============
-int aMa1 = 5;
-int aMa2 = 10;
-int aMa3 = 30;
-int aMa4 = 60;
 int openFunMa(int i=0){
     int type = 0;
-
-    //定海神针
-    double pre1Ma4 = iMA(Symbol(),0,aMa4,0,MODE_SMA,PRICE_CLOSE,i+1);
-    double pre2Ma4 = iMA(Symbol(),0,aMa4,0,MODE_SMA,PRICE_CLOSE,i+2);
-    double pre3Ma4 = iMA(Symbol(),0,aMa4,0,MODE_SMA,PRICE_CLOSE,i+3);
-    double pre4Ma4 = iMA(Symbol(),0,aMa4,0,MODE_SMA,PRICE_CLOSE,i+4);
-    double pre5Ma4 = iMA(Symbol(),0,aMa4,0,MODE_SMA,PRICE_CLOSE,i+5);
-
-    if(
-        pre1Ma4>pre2Ma4 == pre2Ma4>pre3Ma4
-        && pre2Ma4>pre3Ma4 != pre3Ma4>pre4Ma4
-        && pre3Ma4>pre4Ma4 == pre4Ma4>pre5Ma4
-    ){
-        if(pre1Ma4>pre2Ma4){
-            type = OOPEN_BUY;
-        }else{
-            type = OOPEN_SELL;
-        }
-    }
-
+    
     return type;
 }
