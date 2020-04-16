@@ -14,19 +14,19 @@
 //--- plot ma2
 #property indicator_label2  "ma2"
 #property indicator_type2   DRAW_LINE
-#property indicator_color2  clrYellow
+#property indicator_color2  clrBlue
 #property indicator_style2  STYLE_SOLID
-#property indicator_width2  1
+#property indicator_width2  3
 //--- plot ma3
 #property indicator_label3  "ma3"
 #property indicator_type3   DRAW_LINE
-#property indicator_color3  clrBlueViolet
+#property indicator_color3  clrYellow
 #property indicator_style3  STYLE_SOLID
-#property indicator_width3  2
+#property indicator_width3  1
 //--- plot ma4
 #property indicator_label4  "ma4"
 #property indicator_type4   DRAW_LINE
-#property indicator_color4  clrYellow
+#property indicator_color4  clrBlueViolet
 #property indicator_style4  STYLE_SOLID
 #property indicator_width4  1
 
@@ -43,7 +43,7 @@ double         ma3Buffer[];
 double         ma4Buffer[];
 
 const long chart_ID = 0;
-string tips[20];
+string tips[10];
 string objNameReferenceUp = "referenceLineUp";  //参考线
 string objNameReferenceDown = "referenceLineDown";
 
@@ -90,7 +90,7 @@ int OnInit()
         }
     }
 
-    tips[0] = "excellent";
+    tips[0] = "tips";
     writeTips();
 
     return(INIT_SUCCEEDED);
@@ -127,8 +127,6 @@ void drawMa(int i){
    ma4Buffer[i] = iMA(Symbol(),0,ma4,0,MODE_SMA,PRICE_CLOSE,i);
 }
 
-
-int tempi;
 bool isFirst = true;
 int kpool = 80;
 bool canTest = true;
@@ -143,20 +141,15 @@ int OnCalculate(const int rates_total,
                 const long &volume[],
                 const int &spread[])
 {
-    if(Period() != 60) return rates_total;
+    //if(Period() != 60) return rates_total;
     ObjectSet(objNameReferenceUp,1,close[0]+5);
     ObjectSet(objNameReferenceDown,1,close[0]-5);
 
-    tempi = (isFirst ? rates_total-kpool : 100);
-    for(int i=0;i<tempi;i++){
-        if(isFirst) isFirst=false;
-        if(i+110>rates_total) break;
-
+    for(int i=0;i<rates_total;i++){
         drawMa(i);
         int type = 0;
 
         type = openStrategy(i);
-
         if(type>0){
             switch(type){
                 case OOPEN_BUY:
@@ -166,8 +159,10 @@ int OnCalculate(const int rates_total,
                     drawVline(i, clrLime);
                     break;
             }
-
-            //drawTrendLine(i, ma2);
+            
+            if(rates_total - i > kpool){
+                //drawTrendLine(i, ma2);
+            }
         }
     }
 
